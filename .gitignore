@@ -1,0 +1,34 @@
+# OBLITERATUS - Git Exclusion Protocol
+
+# Binaries and executables
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Payloads and Signal Assets
+payloads/*.bin
+!payloads/research_signal.bin
+
+# Go dependencies and cache
+vendor/
+go.sum
+go.work
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# IDEs and local config
+.vscode/
+.idea/
+*.swp
+*.log
+
+# Temporary build artifacts
+obj/
+*.o
+*.a
+.gemini/

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OBLITERATUS QUANTUM - Master Edition</title>
+    <style>
+        :root {
+            --ios-blur: blur(40px);
+            --ios-bg: rgba(30, 30, 30, 0.85);
+            --ios-border: rgba(255, 255, 255, 0.1);
+            --accent: #0a84ff;
+        }
+
+        * { box-sizing: border-box; user-select: none; }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+            background: #000; color: #fff;
+        }
+
+        #desktop {
+            position: relative; width: 100%; height: 100%;
+            background: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1964&auto=format&fit=crop') center center / cover;
+        }
+
+        #dock-container { position: absolute; bottom: 30px; width: 100%; display: flex; justify-content: center; z-index: 2000; }
+        #dock { background: rgba(255, 255, 255, 0.15); backdrop-filter: var(--ios-blur); border-radius: 35px; padding: 12px 20px; display: flex; gap: 20px; border: 0.5px solid var(--ios-border); }
+
+        .app-icon { width: 60px; height: 60px; border-radius: 22.5%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.3s; }
+        .app-icon:hover { transform: scale(1.2) translateY(-10px); }
+        .app-icon i { font-size: 28px; color: white; }
+        .app-icon.monitor { background: linear-gradient(135deg, #5e5ce6, #3634a3); }
+        .app-icon.terminal { background: linear-gradient(135deg, #1c1c1e, #3a3a3c); }
+        .app-icon.lab { background: linear-gradient(135deg, #ff3b30, #ff9500); }
+
+        .window { position: absolute; background: var(--ios-bg); backdrop-filter: var(--ios-blur); border: 0.5px solid var(--ios-border); border-radius: 22px; overflow: hidden; display: none; flex-direction: column; box-shadow: 0 40px 80px rgba(0,0,0,0.5); z-index: 100; }
+        .window-header { padding: 15px 20px; background: rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; cursor: move; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .window-title { font-size: 14px; font-weight: 700; color: #fff; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; display: inline-block; cursor: pointer; }
+        .dot.red { background: #ff5f56; } 
+
+        .window-content { padding: 25px; flex-grow: 1; overflow-y: auto; }
+
+        #console { height: 250px; background: #000; padding: 15px; border-radius: 12px; font-family: monospace; font-size: 11px; overflow-y: auto; color: #0a84ff; border: 1px solid rgba(255,255,255,0.05); }
+        
+        select, input {
+            width: 100%; padding: 14px; background: #1c1c1e; border: 1px solid #3a3a3c; border-radius: 12px;
+            color: #fff !important; font-size: 15px; margin-bottom: 20px; outline: none;
+        }
+        option { background: #1c1c1e; color: #fff; }
+
+        button { width: 100%; padding: 15px; border: none; border-radius: 15px; background: var(--accent); color: #fff; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        button:hover { filter: brightness(1.2); }
+        button.secondary { background: rgba(255,255,255,0.1); margin-bottom: 10px; }
+        
+        .recommended { color: #ffd60a !important; font-weight: bold; border: 1px solid #ffd60a; }
+    </style>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div id="desktop">
+        <div id="win-monitor" class="window" style="top: 80px; left: 50px; width: 380px;">
+            <div class="window-header"><div class="window-title"><span class="dot red" onclick="closeApp('monitor')"></span>Environment</div></div>
+            <div class="window-content">
+                <select id="processList" size="10" style="height: 200px;"></select>
+                <button class="secondary" id="refreshProcs">RESCAN</button>
+                <button id="intelBtn" style="background: linear-gradient(135deg, #5e5ce6, #af52de);">IA INTEL</button>
+            </div>
+        </div>
+
+        <div id="win-terminal" class="window" style="top: 80px; left: 450px; width: 500px;">
+            <div class="window-header"><div class="window-title"><span class="dot red" onclick="closeApp('terminal')"></span>System Console</div></div>
+            <div class="window-content"><div id="console"></div></div>
+        </div>
+
+        <div id="win-lab" class="window" style="top: 400px; left: 50px; width: 380px;">
+            <div class="window-header"><div class="window-title"><span class="dot red" onclick="closeApp('lab')"></span>Signal Architect</div></div>
+            <div class="window-content">
+                <select id="payloadType"><option value="research">Research Pattern</option></select>
+                <input type="number" id="pid" placeholder="Target PID">
+                <button id="loadBtn" style="background: #ff3b30;">QUANTUM SYNC</button>
+            </div>
+        </div>
+
+        <div id="dock-container"><div id="dock">
+            <div class="app-icon monitor" onclick="toggleApp('monitor')"><i data-lucide="activity"></i></div>
+            <div class="app-icon terminal" onclick="toggleApp('terminal')"><i data-lucide="terminal"></i></div>
+            <div class="app-icon lab" onclick="toggleApp('lab')"><i data-lucide="zap"></i></div>
+        </div></div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        const socket = new WebSocket('ws://' + window.location.host + '/ws');
+        const consoleEl = document.getElementById('console');
+        const procSelect = document.getElementById('processList');
+        const pidInput = document.getElementById('pid');
+
+        function addLog(m, l) {
+            const e = document.createElement('div'); e.innerHTML = `[${new Date().toLocaleTimeString()}] ${m}`;
+            e.style.color = l === 'SUCCESS' ? '#32d74b' : (l === 'ERROR' ? '#ff453a' : '#0a84ff');
+            consoleEl.appendChild(e); consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        socket.onmessage = (ev) => { const d = JSON.parse(ev.data); addLog(d.message, d.level); };
+
+        async function refresh() {
+            const res = await fetch('/processes'); const ps = await res.json();
+            procSelect.innerHTML = '';
+            ps.forEach(p => { const o = document.createElement('option'); o.value = p.pid; o.textContent = `${p.name} [${p.pid}]`; procSelect.appendChild(o); });
+            addLog("Rescanned.", "INFO");
+        }
+        procSelect.onchange = () => pidInput.value = procSelect.value;
+        document.getElementById('refreshProcs').onclick = refresh;
+
+        document.getElementById('intelBtn').onclick = async () => {
+            addLog("Analyzing environment...", "INFO");
+            try {
+                const res = await fetch('/intelligence');
+                const intel = await res.json();
+                intel.forEach(i => {
+                    const opt = Array.from(procSelect.options).find(o => o.value == i.pid);
+                    if (opt) { opt.className = 'recommended'; opt.textContent = "⭐ " + opt.textContent; }
+                });
+                addLog("Analysis complete.", "SUCCESS");
+            } catch(e) { addLog("Intel Error.", "ERROR"); }
+        };
+
+        document.getElementById('loadBtn').onclick = async () => {
+            const res = await fetch('/sync', { method: 'POST', body: JSON.stringify({pid: pidInput.value}) });
+            if (res.ok) addLog("SYNC OK.", "SUCCESS"); else addLog("SYNC FAILED.", "ERROR");
+        };
+
+        // DRAGGABLE LOGIC RESTORED
+        document.querySelectorAll('.window').forEach(win => {
+            const hdr = win.querySelector('.window-header');
+            hdr.onmousedown = (e) => {
+                let sX = e.clientX - win.getBoundingClientRect().left;
+                let sY = e.clientY - win.getBoundingClientRect().top;
+                const move = (ev) => { win.style.left = (ev.pageX - sX) + 'px'; win.style.top = (ev.pageY - sY) + 'px'; };
+                document.addEventListener('mousemove', move);
+                document.onmouseup = () => { document.removeEventListener('mousemove', move); document.onmouseup = null; };
+            };
+        });
+
+        function toggleApp(id) { const w = document.getElementById('win-'+id); w.style.display = w.style.display === 'flex' ? 'none' : 'flex'; }
+        function closeApp(id) { document.getElementById('win-'+id).style.display = 'none'; }
+        window.onload = () => { ['monitor', 'terminal', 'lab'].forEach(i => toggleApp(i)); refresh(); };
+    </script>
+</body>
+</html>
