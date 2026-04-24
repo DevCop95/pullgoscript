@@ -1,0 +1,10 @@
+# Exclude HTML files from the language statistics
+*.html linguist-detectable=false
+
+# Alternatively, mark specific folders as documentation (not counted in stats)
+templates/* linguist-documentation=true
+docs/* linguist-documentation=true
+
+# Ensure Go and Assembly are prioritized
+*.go linguist-detectable=true
+*.s linguist-detectable=true
