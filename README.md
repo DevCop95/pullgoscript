@@ -16,8 +16,8 @@
 
 ## ⚡ Technical Core & Evasion Layer
 
-### 🔬 Low-Level Execution Bridge (Halo's Gate)
-- **Indirect Syscalls:** Custom ASM bridge (`EnergyFlow`) dynamically resolves System Service Numbers (SSNs) and identifies syscall gadgets within `ntdll.dll`. This bypasses EDR/AV user-mode hooks by executing instructions directly in memory.
+### 🔬 Low-Level Execution Bridge ([Halo's Gate](HALOS_GATE.md))
+- **Indirect Syscalls:** Custom ASM bridge (`EnergyFlow`) dynamically resolves System Service Numbers (SSNs) and identifies syscall gadgets within `ntdll.dll`. See [HALOS_GATE.md](HALOS_GATE.md) for technical deep-dive.
 - **Stack Hygiene:** Strict adherence to Windows x64 calling conventions and shadow space management to mitigate stack-based anomaly detection.
 
 ### 🛡️ Memory Hardening (W^X Strategy)
