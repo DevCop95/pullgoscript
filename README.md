@@ -1,61 +1,68 @@
-# 🌌 OBLITERATUS QUANTUM
-### Advanced Process Orchestration & Signal Synchronization Framework
+# 🌌 OBLITERATUS - Advanced Red Teaming Framework
+### High-Fidelity Evasion & Identity Nexus Synchronization for Windows NT
 
 ![Go](https://img.shields.io/badge/Go-00ADD8?style=for-the-badge&logo=go&logoColor=white)
 ![Assembly](https://img.shields.io/badge/Assembly-00599C?style=for-the-badge&logo=cplusplus&logoColor=white)
-![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
-![Windows](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)
+![License](https://img.shields.io/badge/Audit-Research-blue)
+![EDR-Evasion](https://img.shields.io/badge/EDR--Evasion-Elite-green?style=for-the-badge)
 
-**OBLITERATUS** is a high-performance orchestration engine built in Go and low-level x64 Assembly. Designed for stealth synchronization and memory hygiene, it implements advanced syscall redirection and fragmented data transfer protocols.
-
----
-
-## ⚡ Core Engine Specifications
-
-### 🔬 Low-Level Execution Bridge
-- **Indirect Syscalls (Halo's Gate):** Custom x64 ASM bridge (`EnergyFlow`) to bypass user-mode hooks by resolving SSNs dynamically from `ntdll.dll` stubs.
-- **Quantum Bridge Architecture:** Non-linear register mapping and stack alignment to minimize static signatures.
-
-### 🛡️ Operational Stealth
-- **Phase Transition (RW → RX):** Automated memory hygiene that transmutes memory permissions after signal synchronization to eliminate `RWX` footprints.
-- **Signal Fragmentation:** Data is injected in **256-byte chunks**, mimicking standard network buffer patterns to avoid entropy-based detection.
-- **Stack Spoofing:** Synthetic call stack generation to mask thread origin, appearing as legitimate system callbacks.
-
-### 🧠 Intelligence & Connectivity
-- **Heuristic Analysis Engine:** Real-time process tree scanning with high-value target prioritization.
-- **Uplink Channel:** Secure TCP feedback loop (Port 9999) for real-time telemetry and directive execution.
-- **Dynamic API Obfuscation:** XOR-based string encryption for all critical Win32/NT endpoints.
+**OBLITERATUS** is a sophisticated security orchestration engine designed for advanced post-exploitation research and defensive evasion testing. It implements a multi-layered stealth architecture to minimize the "Signature of Intent" while performing deep forensic analysis and identity correlation across modern Windows environments.
 
 ---
 
-## 🖥️ UI / UX - Master Console
-The framework features a sophisticated **iOS-inspired Glassmorphism** interface:
-- **Environment Monitor:** Real-time process visualization and recommended node highlighting.
-- **Signal Architect:** Modular payload synthesis and multi-stage synchronization control.
-- **Quantum Console:** Integrated WebSocket terminal for live system feedback.
+## ⚡ Technical Core & Evasion Layer
+
+### 🔬 Low-Level Execution Bridge (Halo's Gate)
+- **Indirect Syscalls:** Custom ASM bridge (`EnergyFlow`) dynamically resolves System Service Numbers (SSNs) and identifies syscall gadgets within `ntdll.dll`. This bypasses EDR/AV user-mode hooks by executing instructions directly in memory.
+- **Stack Hygiene:** Strict adherence to Windows x64 calling conventions and shadow space management to mitigate stack-based anomaly detection.
+
+### 🛡️ Memory Hardening (W^X Strategy)
+- **Phase Transitioning:** Eliminates the `RWX` (Read-Write-Execute) footprint. Memory pages are allocated as `PAGE_READWRITE` (0x04) during initial sync and transmuted to `PAGE_EXECUTE_READ` (0x20) using `NtProtectVirtualMemory` immediately before execution.
+- **Handle Sanitization:** Precise lifecycle management via `NtClose`, preventing process-to-target linkage leakage in the kernel object table.
+
+### 🧠 Identity Nexus & Intelligence
+- **Semantic Correlation:** Advanced "Identity Nexus" module that performs a Bayesian-like join between session cookies and saved credentials. It identifies **Critical Compromise Nodes** where an active session matches a stored identity, bypassing MFA requirements.
+- **App-Bound Research (v20):** Integrated COM-based suitor module that interacts with the `Google Chrome Elevation Service` (`IElevator`) to research bypasses for modern Chromium encrypted stores.
+- **VFS Forensic Sanitization:** Utilizes memory-backed SQLite processing to perform triple-copy snapshots (DB+WAL+SHM) with zero disk persistence in `%TEMP%`.
+
+### 🔒 Zero-Trust Orchestration
+- **Ephemeral Tokenization:** All orchestration endpoints are shielded by a PID-based ephemeral token (`X-Signal-Token`), preventing unauthorized local process interference.
+- **Handshake Protocol:** The C2 interface is hidden behind a simulated Apache 404 facade, requiring a specific interaction sequence (3-click handshake or F2) to unlock the Master Console.
 
 ---
 
-## 🚀 Deployment Guide
-
-### Build Process
-Utilizes a hybrid compilation strategy to integrate Go source with x64 assembly stubs:
-```bash
-go build -ldflags="-s -w" -o bin/obliteratus.exe ./src/go
-```
-
-### Execution
-Requires elevated privileges for cross-process memory operations:
-1. Run `obliteratus.exe` as **Administrator**.
-2. Interface available at `http://localhost:8080`.
+## 🖥️ Operational Interface (Master Console)
+Featuring a **macOS-inspired Glassmorphism** UX/UI:
+- **Architect Module:** Centralized node for process selection and signal synchronization.
+- **Nexus Decrypter:** Real-time visualization of correlated credentials and active session tokens.
+- **System Optimizer:** One-click kernel-level module to disable Windows Telemetry (`DiagTrack`) and Error Reporting (`WerSvc`).
+- **Hex Live-Viewer:** Low-level buffer monitoring for payload integrity verification.
 
 ---
 
-## 🛠 Tech Stack
-- **Backend:** Go (Golang) + x64 Assembly (MASM/Plan9)
-- **Communication:** WebSockets (Real-time telemetry)
-- **Frontend:** Vanilla JS + CSS3 (Glassmorphism UI)
-- **APIs:** Win32 API / Native API (NTDLL)
+## 🚀 Deployment & Reconstruction
+
+### Compilation Protocol
+1.  **Environment:** Go 1.21+ required.
+2.  **Dependency Sync:**
+    ```powershell
+    go mod tidy
+    ```
+3.  **Stealth Build:** 
+    ```bash
+    go build -ldflags="-s -w -H=windowsgui" -o bin/obliteratus.exe ./src/go
+    ```
+
+### Operational Use
+Requires Administrator privileges for COM interface interaction and memory manipulation:
+1. Run `bin/obliteratus.exe`.
+2. Connect via `http://localhost:8080`.
+3. Execute **Handshake Protocol** to initialize the signal.
 
 ---
-*Disclaimer: This tool is intended for research and security auditing purposes only. Unauthorized use on systems you do not own is strictly prohibited.*
+
+## ⚠️ Disclaimer
+**OBLITERATUS** is intended strictly for authorized security auditing, research, and educational purposes. The developer assumes no responsibility for unauthorized use. Accessing private data without explicit permission is illegal and unethical.
+
+---
+*Engineering Cyber-Resilience through Offensive Innovation.*
