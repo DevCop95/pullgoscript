@@ -1,6 +1,10 @@
 # 🌌 OBLITERATUS - Advanced Red Teaming Framework
 ### High-Fidelity Evasion & Identity Nexus Synchronization for Windows NT
 
+<p align="center">
+  <img src="src/img/obliteratus.png" alt="OBLITERATUS Master Console" width="100%">
+</p>
+
 ![Go](https://img.shields.io/badge/Go-00ADD8?style=for-the-badge&logo=go&logoColor=white)
 ![Assembly](https://img.shields.io/badge/Assembly-00599C?style=for-the-badge&logo=cplusplus&logoColor=white)
 ![License](https://img.shields.io/badge/Audit-Research-blue)
@@ -27,7 +31,12 @@
 
 ### 🔒 Zero-Trust Orchestration
 - **Ephemeral Tokenization:** All orchestration endpoints are shielded by a PID-based ephemeral token (`X-Signal-Token`), preventing unauthorized local process interference.
-- **Handshake Protocol:** The C2 interface is hidden behind a simulated Apache 404 facade, requiring a specific interaction sequence (3-click handshake or F2) to unlock the Master Console.
+- **Handshake Protocol:** The C2 interface is hidden behind a simulated Apache 404 facade.
+<p align="center">
+  <img src="src/img/notfound.png" alt="OBLITERATUS Facade" width="60%">
+  <br>
+  <i>The system remains dormant behind a 404 facade until the specific interaction sequence (3-click handshake or F2) is executed.</i>
+</p>
 
 ---
 
