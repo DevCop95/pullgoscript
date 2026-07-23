@@ -2,7 +2,7 @@
 ### High-Fidelity Evasion & Identity Nexus Synchronization for Windows NT
 
 <p align="center">
-  <img src="src/img/obliteratus.png" alt="OBLITERATUS Master Console" width="100%">
+  <img src="src/img/bin.jpg" alt="OBLITERATUS Master Console" width="100%">
 </p>
 
 ![Go](https://img.shields.io/badge/Go-00ADD8?style=for-the-badge&logo=go&logoColor=white)
@@ -31,6 +31,7 @@
 
 ### 🔒 Zero-Trust Orchestration
 - **Ephemeral Tokenization:** All orchestration endpoints are shielded by a PID-based ephemeral token (`X-Signal-Token`), preventing unauthorized local process interference.
+- **Automatic UAC Elevation:** The binary self-elevates to Administrator on startup via `ShellExecuteW` with the `runas` verb, ensuring all privileged operations (registry writes, COM interfaces, memory manipulation) succeed without manual elevation.
 - **Handshake Protocol:** The C2 interface is hidden behind a simulated Apache 404 facade.
 <p align="center">
   <img src="src/img/notfound.png" alt="OBLITERATUS Facade" width="60%">
@@ -41,10 +42,12 @@
 ---
 
 ## 🖥️ Operational Interface (Master Console)
-Featuring a **macOS-inspired Glassmorphism** UX/UI:
-- **Architect Module:** Centralized node for process selection and signal synchronization.
-- **Nexus Decrypter:** Real-time visualization of correlated credentials and active session tokens.
-- **System Optimizer:** One-click kernel-level module to disable Windows Telemetry (`DiagTrack`) and Error Reporting (`WerSvc`).
+Featuring a **KaliOS-inspired Dark Theme** with XFCE panel design and custom SVG dock icons:
+- **System Optimizer:** One-click kernel-level module to disable Windows Telemetry (`AllowTelemetry`), Error Reporting (`Disabled`), and Tracking (`Start_TrackProgs`) with `DiagTrack` service shutdown.
+- **Processes:** Real-time process enumeration with search filtering and PID selection.
+- **Architect Module:** Centralized node for process selection and signal synchronization (Quantum Sync, Nexus Correlation, Passwords, Cookies).
+- **Decrypter:** Real-time visualization of correlated credentials and active session tokens with CSV export.
+- **Terminal Console:** Integrated command execution terminal with live output streaming via WebSocket.
 - **Hex Live-Viewer:** Low-level buffer monitoring for payload integrity verification.
 
 ---
@@ -63,10 +66,11 @@ Featuring a **macOS-inspired Glassmorphism** UX/UI:
     ```
 
 ### Operational Use
-Requires Administrator privileges for COM interface interaction and memory manipulation:
-1. Run `bin/obliteratus.exe`.
+The binary automatically requests Administrator privileges via UAC on startup:
+1. Run `bin/obliteratus.exe` — UAC prompt will appear automatically.
 2. Connect via `http://localhost:8080`.
-3. Execute **Handshake Protocol** to initialize the signal.
+3. Execute **Handshake Protocol** (3-click or F2) to initialize the signal.
+4. Status badge will display **[ADMIN]** confirming elevated privileges.
 
 ---
 
