@@ -15,3 +15,7 @@ docs/* linguist-documentation=true
 *.go text eol=lf
 *.s   text eol=lf
 
+# Same for the embedded dashboard: internal/ui/web is go:embed'ed into the
+# binary, so a CRLF rewrite would churn the whole file in every diff.
+*.html text eol=lf
+

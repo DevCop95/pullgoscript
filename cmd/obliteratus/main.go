@@ -10,6 +10,9 @@
 // Offensive modules are OFF unless explicitly unlocked:
 //
 //	--enable-collect   browser credential/cookie collection (authorised use)
+//	--enable-persist   persistence manager T1547/T1053/T1546 (authorised use)
+//	--enable-evasion   self-telemetry evasion: neuter ETW/AMSI in this process
+//	--enable-lateral   lateral movement: WinRM + SCM remote execution
 //	--enable-inject    Halo's Gate process-injection research module
 package main
 
@@ -40,12 +43,16 @@ func main() {
 	var (
 		addr        = flag.String("addr", server.DefaultAddr, "listen address (must be loopback)")
 		collect     = flag.Bool("enable-collect", false, "UNLOCK credential/cookie collection (authorised engagements only)")
+		persist     = flag.Bool("enable-persist", false, "UNLOCK the persistence manager (authorised engagements only)")
+		evasion     = flag.Bool("enable-evasion", false, "UNLOCK self-telemetry evasion (authorised engagements only)")
+		lateral     = flag.Bool("enable-lateral", false, "UNLOCK lateral movement (WinRM + SCM, authorised engagements only)")
 		inject      = flag.Bool("enable-inject", false, "UNLOCK the process-injection research module")
 		elevateFlag = flag.Bool("elevate", false, "re-launch this process elevated via UAC")
 		auditOnly   = flag.Bool("audit", false, "run the Mimikatz attack-surface audit headlessly and exit")
 		jsonOut     = flag.Bool("json", false, "with --audit: emit the report as JSON")
 		csvOut      = flag.Bool("csv", false, "with --audit: emit the report as CSV")
 		payload     = flag.String("payload", "payloads/research_signal.bin", "payload file for the injection module")
+		payloadKey  = flag.String("payload-key", "", "passphrase to unpack a packed payload (see cmd/oblpack)")
 		showVersion = flag.Bool("version", false, "print version and exit")
 	)
 	flag.Parse()
@@ -59,6 +66,9 @@ func main() {
 	modules := map[string]bool{
 		"collect": *collect,
 		"inject":  *inject,
+		"persist": *persist,
+		"evasion": *evasion,
+		"lateral": *lateral,
 		"console": true,
 	}
 
@@ -99,13 +109,26 @@ func main() {
 		Version:       version,
 		Addr:          *addr,
 		EnableCollect: *collect,
+		EnablePersist: *persist,
+		EnableEvasion: *evasion,
+		EnableLateral: *lateral,
 		EnableInject:  *inject,
 		PayloadPath:   *payload,
+		PayloadKey:    *payloadKey,
 		Elevated:      elevated,
 	})
 
 	if *collect {
 		log.Printf("[!] credential collection UNLOCKED (--enable-collect): authorised targets only")
+	}
+	if *persist {
+		log.Printf("[!] persistence module UNLOCKED (--enable-persist): authorised targets only")
+	}
+	if *evasion {
+		log.Printf("[!] evasion module UNLOCKED (--enable-evasion): authorised targets only")
+	}
+	if *lateral {
+		log.Printf("[!] lateral movement UNLOCKED (--enable-lateral): authorised targets only")
 	}
 	if *inject {
 		log.Printf("[!] injection module UNLOCKED (--enable-inject): authorised targets only")

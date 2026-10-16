@@ -2,6 +2,8 @@
 
 package audit
 
+import "fmt"
+
 // RunChecks reports the platform limitation off Windows: OBLITERATUS audits
 // Windows security controls through the Windows registry and SCM.
 func RunChecks(elevated bool) []Finding {
@@ -39,3 +41,11 @@ func Nexus(Emitter) map[string]Node { return map[string]Node{} }
 
 // DumpSAM returns no accounts off Windows: the SAM hive only exists there.
 func DumpSAM(Emitter) ([]SAMAccount, error) { return nil, nil }
+
+// DumpLSASS is unreachable off Windows.
+func DumpLSASS(int, string, Emitter) (string, int64, error) {
+	return "", 0, fmt.Errorf("lsass: unsupported on this platform")
+}
+
+// WipeFile is a no-op off Windows.
+func WipeFile(string) error { return nil }
