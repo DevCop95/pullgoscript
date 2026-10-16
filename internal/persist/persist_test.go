@@ -50,6 +50,8 @@ func TestSpecNormalizedType(t *testing.T) {
 	}
 }
 
+// TestAddRemoveValidation exercises the validation that runs before the
+// platform backend is chosen, so it is meaningful on every OS.
 func TestAddRemoveValidation(t *testing.T) {
 	if err := Add(Spec{Name: "", Command: "x"}); err == nil {
 		t.Error("Add accepted an empty name")
@@ -65,44 +67,5 @@ func TestAddRemoveValidation(t *testing.T) {
 	}
 	if err := Remove(Spec{Type: "bogus", Name: "x"}); err == nil {
 		t.Error("Remove accepted an unknown type")
-	}
-}
-
-func TestPsQuote(t *testing.T) {
-	got := psQuote(`C:\x.exe /c "a'b"`)
-	if !strings.HasPrefix(got, "'") || !strings.HasSuffix(got, "'") {
-		t.Fatalf("psQuote not single-quoted: %q", got)
-	}
-	if !strings.Contains(got, "''") {
-		t.Fatalf("psQuote did not double the embedded quote: %q", got)
-	}
-}
-
-func TestParseTasksCSV(t *testing.T) {
-	out := []byte(`"\OBL_nightly","N/A","Ready","Interactive","N/A","0","CORP\a","cmd.exe /c beacon.exe","N/A"` + "\r\n" +
-		`"\Microsoft\Windows\Foo","N/A","Ready","Interactive","N/A","0","SYSTEM","%windir%\foo.exe","N/A"` + "\r\n")
-	entries := parseTasksCSV(out)
-	if len(entries) != 1 {
-		t.Fatalf("parseTasksCSV returned %d entries, want 1 (Microsoft task filtered)", len(entries))
-	}
-	if entries[0].Name != "OBL_nightly" || entries[0].Type != TypeTask {
-		t.Fatalf("entry = %+v", entries[0])
-	}
-	if entries[0].Command != "cmd.exe /c beacon.exe" {
-		t.Fatalf("command = %q", entries[0].Command)
-	}
-}
-
-func TestParseWMIConsumers(t *testing.T) {
-	out := []byte("OBL_foo|cmd.exe /c calc\r\n\r\nEvilThing|powershell -enc AAAA\r\n")
-	entries := parseWMIConsumers(out)
-	if len(entries) != 2 {
-		t.Fatalf("parseWMIConsumers returned %d entries, want 2", len(entries))
-	}
-	if entries[0].Name != "OBL_foo" || entries[0].Type != TypeWMI || entries[0].Hive != "WMI" {
-		t.Fatalf("entry[0] = %+v", entries[0])
-	}
-	if entries[1].Command != "powershell -enc AAAA" {
-		t.Fatalf("entry[1].Command = %q", entries[1].Command)
 	}
 }

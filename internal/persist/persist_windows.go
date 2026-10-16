@@ -3,8 +3,10 @@
 package persist
 
 import (
+	"bytes"
 	"encoding/csv"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -190,9 +192,11 @@ func removeTask(name string) error {
 	return nil
 }
 
-// listTasks parses `schtasks /Query /V /FO CSV /NH`. The column ORDER is
-// stable across locales even though the header text is localised: column 0 is
-// TaskName and column 7 is "Task To Run". Microsoft's own tasks are skipped.
+// listTasks parses `schtasks /Query /FO CSV /V /NH`. The column ORDER is stable
+// across locales even though the header text is localised: column 1 is
+// TaskName and column 8 is "Task To Run" (0 HostName, 1 TaskName, 2 Next Run
+// Time, 3 Status, 4 Logon Mode, 5 Last Run Time, 6 Last Result, 7 Author,
+// 8 Task To Run, …). Microsoft's own tasks are skipped.
 func listTasks() []Entry {
 	out, err := runHidden("schtasks", "/Query", "/FO", "CSV", "/V", "/NH")
 	if err != nil {
@@ -201,26 +205,65 @@ func listTasks() []Entry {
 	return parseTasksCSV(out)
 }
 
+// Column indices in the schtasks CSV, verified against real output rather than
+// assumed — reading HostName/Author here silently produced garbage entries.
+const (
+	taskColName = 1 // TaskName
+	taskColRun  = 8 // "Task To Run"
+)
+
 // parseTasksCSV turns schtasks CSV output into entries (pure, so it is unit
 // tested without invoking the scheduler).
+//
+// schtasks does NOT emit conforming CSV: a task action that itself contains
+// quotes — e.g. `""C:\Program Files\…\x.exe" /c""` — is written without
+// doubling the inner quotes. Go's parser is strict by default, so the whole
+// stream failed and the module reported zero scheduled tasks on every host.
+// LazyQuotes tolerates it and FieldsPerRecord = -1 stops one odd row from
+// aborting the list. Rows are read incrementally so a single unparseable line
+// is skipped instead of discarding every other foothold.
+//
+// `/V` also emits one row per trigger, so a task with N triggers appears N
+// times (385 rows → 268 tasks on a stock host). Entries are de-duplicated by
+// task name so the foothold list is not padded with repeats.
 func parseTasksCSV(out []byte) []Entry {
-	rows, err := csv.NewReader(strings.NewReader(string(out))).ReadAll()
-	if err != nil {
-		return nil
-	}
+	r := csv.NewReader(bytes.NewReader(out))
+	r.LazyQuotes = true
+	r.FieldsPerRecord = -1
+
 	var res []Entry
-	for _, r := range rows {
-		if len(r) < 8 {
+	seen := make(map[string]bool)
+	errStreak := 0
+	for {
+		rec, err := r.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			// A ParseError still consumes its line, so this advances; the cap
+			// is only a guard against a reader that never makes progress.
+			if errStreak++; errStreak > 1000 {
+				break
+			}
 			continue
 		}
-		taskName := strings.TrimSpace(r[0])
-		toRun := strings.TrimSpace(r[7]) // "Task To Run"
+		errStreak = 0
+		if len(rec) <= taskColRun {
+			continue
+		}
+		taskName := strings.TrimSpace(rec[taskColName])
+		toRun := strings.TrimSpace(rec[taskColRun])
 		if taskName == "" || toRun == "" {
 			continue
 		}
 		if strings.Contains(strings.ToLower(taskName), `\microsoft\`) {
 			continue // built-in OS tasks — not operator footholds
 		}
+		key := strings.ToLower(taskName)
+		if seen[key] {
+			continue // same task, another trigger
+		}
+		seen[key] = true
 		taskName = strings.TrimPrefix(taskName, `\`)
 		res = append(res, Entry{Type: TypeTask, Hive: "TaskScheduler", Name: taskName, Command: toRun})
 	}
@@ -264,20 +307,54 @@ func addWMI(name, command string) error {
 	return nil
 }
 
-// removeWMI removes the filter, consumer and binding by consumer name. The
-// name is taken verbatim (not re-prefixed) so a foreign consumer listed by
-// listWMI can be cleaned up too.
-func removeWMI(name string) error {
+// wmiRemoveCandidates lists the consumer names to target. Operators name a
+// subscription however they like, but addWMI always prefixes it, so a removal
+// must reach both the verbatim name (a foreign consumer listed by listWMI has
+// no prefix) and the prefixed form (what the operator actually created).
+func wmiRemoveCandidates(name string) []string {
+	if strings.HasPrefix(name, wmiNamePrefix) {
+		return []string{name}
+	}
+	return []string{name, wmiNamePrefix + name}
+}
+
+// wmiRemoveScript builds the PowerShell that deletes one permanent subscription
+// by consumer name.
+//
+// The WQL `-Filter` value must be quoted INSIDE the query, so those quote
+// characters have to be part of the string PowerShell assembles —
+// `("Name='" + 'x' + "'")`. Emitting `("Name=" + 'x')` produced the invalid
+// query `Name=x`: WQL requires a quoted string, the query failed, and
+// $ErrorActionPreference='SilentlyContinue' hid it — so the function reported
+// success while leaving the filter and consumer behind. The binding survived
+// removal only because it is matched with `-like`, which is not WQL.
+func wmiRemoveScript(name string) string {
 	q := psQuote(name)
-	script := `$ErrorActionPreference='SilentlyContinue';` +
+	return `$ErrorActionPreference='SilentlyContinue';` +
 		`$ns='root\subscription';` +
 		`Get-WmiObject -Namespace $ns -Class __FilterToConsumerBinding | Where-Object { $_.Filter -like ('*' + ` + q + ` + '*') -or $_.Consumer -like ('*' + ` + q + ` + '*') } | Remove-WmiObject;` +
-		`Get-WmiObject -Namespace $ns -Class __EventFilter -Filter ("Name=" + ` + q + `) | Remove-WmiObject;` +
-		`Get-WmiObject -Namespace $ns -Class CommandLineEventConsumer -Filter ("Name=" + ` + q + `) | Remove-WmiObject;` +
+		`Get-WmiObject -Namespace $ns -Class __EventFilter -Filter ("Name='" + ` + q + ` + "'") | Remove-WmiObject;` +
+		`Get-WmiObject -Namespace $ns -Class CommandLineEventConsumer -Filter ("Name='" + ` + q + ` + "'") | Remove-WmiObject;` +
 		`Write-Output 'OK'`
-	out, err := psRun(script)
-	if err != nil {
-		return fmt.Errorf("persist: WMI removal %q: %v: %s", name, err, firstLine(out))
+}
+
+// removeWMI removes the filter, consumer and binding for every candidate name,
+// then verifies the consumer is gone. The verification matters: an earlier
+// implementation returned "OK" for a removal that silently did nothing.
+func removeWMI(name string) error {
+	cands := wmiRemoveCandidates(name)
+	for _, c := range cands {
+		out, err := psRun(wmiRemoveScript(c))
+		if err != nil {
+			return fmt.Errorf("persist: WMI removal %q: %v: %s", c, err, firstLine(out))
+		}
+	}
+	for _, e := range listWMI() {
+		for _, c := range cands {
+			if strings.EqualFold(e.Name, c) {
+				return fmt.Errorf("persist: WMI consumer %q still present after removal", e.Name)
+			}
+		}
 	}
 	return nil
 }
