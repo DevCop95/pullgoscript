@@ -9,6 +9,7 @@
 [![CI](https://github.com/DevCop95/pullgoscript/actions/workflows/ci.yml/badge.svg)](https://github.com/DevCop95/pullgoscript/actions/workflows/ci.yml)
 ![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go&logoColor=white)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey?style=flat)
+![Version](https://img.shields.io/badge/version-2.0.0-00a2ed?style=flat)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat)
 
 **OBLITERATUS** answers one question — *would Mimikatz work against this host?* — and answers it with evidence: registry state, token privileges, service configuration and browser store exposure, each mapped to the exact Mimikatz module and MITRE technique it corresponds to.
@@ -20,7 +21,18 @@ It ships as a single binary with two modes:
 | **Headless audit** | `obliteratus.exe --audit` | CI, scripted hardening reviews, blue-team baselines |
 | **Local dashboard** | `obliteratus.exe` | Operators who want the interactive console on `127.0.0.1` |
 
-Offensive research modules (credential collection, indirect-syscall injection) are **compiled in but locked**: they answer `403` until the operator passes `--enable-collect` / `--enable-inject`.
+Every offensive capability is **compiled in but locked**. A locked route answers `403` with the flag that would unlock it, until the operator passes that flag explicitly:
+
+| Flag | Unlocks | Techniques |
+|---|---|---|
+| *(none)* | Audit, process table, terminal, telemetry hardening | — |
+| `--enable-collect` | Browser credential & cookie stores, Identity Nexus, LSASS minidump, SAM hashes, Kerberos roasting, SPN enumeration | T1003.001 · T1003.002 · T1555.003 · T1558.003 · T1558.004 |
+| `--enable-persist` | Persistence foothold manager: Run keys, Startup folder, scheduled tasks, WMI subscriptions | T1547.001 · T1547.009 · T1053.005 · T1546.003 |
+| `--enable-evasion` | Self-telemetry evasion: `ntdll!EtwEventWrite` and `amsi!AmsiScanBuffer` patches, in-process only | T1562.006 · T1562.001 |
+| `--enable-lateral` | Remote execution over WinRM (WS-Management) and SCM (service create/start/delete) | T1021.006 · T1021.002 / T1569.002 |
+| `--enable-inject` | Halo's Gate indirect-syscall process injection (amd64) | T1055 |
+
+Unlocking a module prints a `[!] ... UNLOCKED (authorised engagements only)` banner at startup — the effect is never silent. Hiding blindly is how operators get surprised.
 
 ---
 
@@ -40,9 +52,29 @@ bin\obliteratus.exe --audit --csv  > report.csv
 # interactive dashboard (loopback only, ephemeral 256-bit token)
 bin\obliteratus.exe
 # → http://127.0.0.1:8080/   [add --elevate for privileged checks]
+
+# full operator console: every module unlocked
+bin\obliteratus.exe --enable-collect --enable-persist --enable-evasion --enable-lateral --enable-inject
 ```
 
-Or use the Makefile: `make build`, `make audit`, `make test`.
+Or use the Makefile: `make build`, `make audit`, `make test`, `make cross`.
+
+### Full flag reference
+
+| Flag | Default | Meaning |
+|---|---|---|
+| `--addr` | `127.0.0.1:8080` | Listen address. **Must be loopback** — the server refuses anything else |
+| `--audit` | `false` | Run the audit headlessly and exit |
+| `--json` / `--csv` | `false` | Emit the audit report in machine-readable form |
+| `--elevate` | `false` | Re-launch elevated via UAC (opt-in; no silent auto-UAC) |
+| `--payload` | `payloads/research_signal.bin` | Payload file for the injection module |
+| `--payload-key` | `""` | Passphrase to unpack an encrypted payload (see `cmd/oblpack`) |
+| `--enable-collect` | `false` | UNLOCK credential/cookie collection |
+| `--enable-persist` | `false` | UNLOCK the persistence manager |
+| `--enable-evasion` | `false` | UNLOCK self-telemetry evasion |
+| `--enable-lateral` | `false` | UNLOCK lateral movement (WinRM + SCM) |
+| `--enable-inject` | `false` | UNLOCK the process-injection research module |
+| `--version` | — | Print version and exit |
 
 ---
 
@@ -71,18 +103,24 @@ Checks degrade to `unknown` (never to a false `pass`) when a privilege or asset 
 
 ## 🖥️ Dashboard
 
-Local-only web console on `127.0.0.1` — sidebar layout with modal confirmations, toasts and CSV export:
+Local-only web console on `127.0.0.1` — sidebar layout with modal confirmations, toasts and CSV export. Ten views:
 
-- **Attack-Surface Audit** — run the Mimikatz checklist interactively, CSV export.
-- **Processes** — live process table with filter and PID selection.
-- **System Optimizer** — one-click telemetry/privacy hardening (registry + `DiagTrack`).
-- **Terminal** — command console with streamed output.
-- **Hex viewer** — payload integrity inspection.
-- **Architect / Decrypter** — the *authorised* modules (locked by default): browser credential & cookie collection, Identity Nexus correlation, local SAM hash dump (`lsadump::sam`), injection research. Unlock with `--enable-collect` / `--enable-inject`.
+| View | What it does | Gate |
+|---|---|---|
+| **Overview** | Host snapshot, module status, quick actions | — |
+| **Processes** | Live process table with filter and PID targeting | — |
+| **System Optimizer** | One-click telemetry/privacy hardening (registry + `DiagTrack`) | — |
+| **Terminal** | Command console with streamed output | — |
+| **Hex Viewer** | Payload integrity inspection | — |
+| **Decrypter** | Browser credential & cookie collection, Identity Nexus, SAM dump, Kerberos roasting | `--enable-collect` |
+| **Architect** | Indirect-syscall injection research | `--enable-inject` |
+| **Pulse** | Persistence foothold manager (Run / Startup / Task / WMI) | `--enable-persist` |
+| **Relay** | Remote execution over WinRM and SCM | `--enable-lateral` |
+| **Attack-Surface Audit** | The Mimikatz checklist, interactive, CSV export | — |
 
 <p align="center">
   <img src="docs/img/notfound.png" alt="404 facade" width="55%">
-  <br><i>The console hides behind a simulated Apache 404 until the handshake (3 clicks or F2) — cosmetic only; the real boundary is the per-run token.</i>
+  <br><i>The console hides behind a simulated Apache 404 until the handshake (F2, three clicks on "Not Found", or the top-left hotspot) — cosmetic only; the real boundary is the per-run token.</i>
 </p>
 
 ---
@@ -101,9 +139,13 @@ OBLITERATUS v1 had critical local exposure holes; v2 closes them and the test-su
 | 🟠 | Token in HTML readable cross-origin (no CSP/headers) | Same-origin only + CSP, `nosniff`, `DENY` framing, `no-store` |
 | 🟠 | DOM XSS: DB-derived URLs rendered via `innerHTML` | All server data escaped through `window.esc()` before `innerHTML` |
 | 🟡 | Auto-UAC on every start | Elevation opt-in (`--elevate`) |
-| 🟡 | Credentialed collectors reachable by default | Locked behind `--enable-collect` / `--enable-inject`, fail closed with actionable `403` |
+| 🟡 | Credentialed collectors reachable by default | Locked behind `--enable-*` flags, fail closed with an actionable `403` |
 
-**Trust boundary:** anyone who can read the dashboard page (loopback, same-origin) is the operator. Cross-site pages can *reach* the port but cannot read responses, cannot set the custom header without a preflight we never approve, and cannot complete the WebSocket handshake. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full threat model.
+**Trust boundary:** anyone who can read the dashboard page (loopback, same-origin) is the operator. Cross-site pages can *reach* the port but cannot read responses, cannot set the custom header without a preflight we never approve, and cannot complete the WebSocket handshake. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full threat model and [SECURITY.md](SECURITY.md) for the reporting process.
+
+### Intentional capabilities (features, not bugs)
+
+`POST /v1/sys/cmd` executes shell commands as the token holder; `--enable-collect` decrypts browser stores and the local SAM **on the local host**; `--enable-inject` performs W^X injection into an operator-selected local PID. They are reachable only over loopback, only with the per-run token, and only with the matching flag. Hardening regressions in that chain *are* in scope.
 
 ---
 
@@ -111,14 +153,31 @@ OBLITERATUS v1 had critical local exposure holes; v2 closes them and the test-su
 
 ```
 cmd/obliteratus/        CLI: flags, --audit mode, wiring
+cmd/oblpack/            Payload packer (AES-256-GCM container, magic OBLP\x01)
 internal/
   audit/                ★ Mimikatz attack-surface checks + report (JSON/CSV)
     host_windows.go       12 controls: WDigest, PPL, CredGuard, SeDebug…
     collector_windows.go  authorised browser collectors (--enable-collect)
-    sam_windows.go         lsadump::sam: RegSaveKeyEx + [MS-SAMR] hash chain
-    regf.go                offline registry-hive parser (regf reader)
+    lsass_windows.go      sekurlsa::logonpasswords — LSASS minidump (--enable-collect)
+    sam_windows.go        lsadump::sam: RegSaveKeyEx + [MS-SAMR] hash chain
+    regf.go               offline registry-hive parser (regf reader)
+  krb/                  Kerberos roasting: AS-REP (T1558.004) + Kerberoast (T1558.003)
+  lateral/              Lateral movement (--enable-lateral)
+    winrm.go              WS-Management SOAP client, Basic auth (T1021.006)
+    scm_windows.go        SCM service create/start/delete (T1021.002 / T1569.002)
+  persist/              Persistence manager (--enable-persist)
+    persist_windows.go    Run keys (T1547.001), Startup (T1547.009),
+                          schtasks (T1053.005), WMI subscription (T1546.003)
+  research/             Self-evasion + injection (amd64)
+    dll_windows.go        shared W^X prologue patcher (idempotent)
+    etw_windows.go        ntdll!EtwEventWrite neuter (T1562.006)
+    amsi_windows.go       amsi!AmsiScanBuffer patch (T1562.001)
+    pack.go               AES-256-GCM payload container (OBLP\x01)
+    inject_windows.go     Halo's Gate indirect-syscall injection (--enable-inject)
+    energyflow_amd64.s    the syscall trampoline
+  obfuscate/            Compile-time masking for sensitive string literals
+  winname/              Masked Windows API names (kept out of the symbol table)
   server/               Loopback HTTP API, auth middleware, WS hub, handlers
-  research/             Halo's Gate indirect-syscall bridge + injection (amd64)
   token/                Per-run 256-bit token (crypto/rand, constant-time cmp)
   ui/                   Embedded dashboard (//go:embed)
   elevate/              Opt-in UAC relaunch
@@ -126,6 +185,8 @@ internal/
 docs/                   HALOS_GATE research note, architecture, images
 build/                  Manifest for optional requireAdministrator builds
 ```
+
+Dependency direction: `cmd → server → {audit, research, ui, …}`. The `audit` package never imports `server` — progress is reported through an `Emitter` callback — so checks stay unit-testable.
 
 - **Research notes:** [docs/HALOS_GATE.md](docs/HALOS_GATE.md) — SSN recovery, indirect syscalls, W^X page transitions (`NtAllocateVirtualMemory` RW → `NtProtectVirtualMemory` RX: no RWX page ever exists).
 - **Build details:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
@@ -135,12 +196,13 @@ build/                  Manifest for optional requireAdministrator builds
 ## 🧪 Testing
 
 ```bash
-make test    # go vet + go test ./...   (server auth, WS handshake, report, audit)
+make test    # gofmt check + go vet + go test ./...
 make build   # windows/amd64 binary
+make cross   # cross-compile check (what CI runs on Linux)
 make audit   # run the audit against this machine
 ```
 
-CI runs `gofmt`, `go vet`, `go test` on Windows and cross-compiles from Linux on every push/PR.
+CI runs `gofmt`, `go vet`, `go test` and an audit smoke test on a real Windows runner, then cross-compiles from Linux and runs the platform-neutral package tests — so the `//go:build` stubs are exercised on every push and PR.
 
 ---
 
@@ -154,7 +216,7 @@ New audit checks, fixes and docs are welcome — see [CONTRIBUTING.md](CONTRIBUT
 
 ## ⚠️ Disclaimer
 
-OBLITERATUS is for **authorized security assessment, research and education** on systems you own or are contracted to test. The credential-collection and injection modules are deliberately locked; unlocking them is an explicit acknowledgement that your engagement permits their use. Unauthorized access to computer systems is illegal.
+OBLITERATUS is for **authorized security assessment, research and education** on systems you own or are contracted to test. The credential-collection, persistence, evasion, lateral-movement and injection modules are deliberately locked; unlocking them is an explicit acknowledgement that your engagement permits their use. Unauthorized access to computer systems is illegal.
 
 ---
 *Assume breach. Audit the credentials before someone else does.*
