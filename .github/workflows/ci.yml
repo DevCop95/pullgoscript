@@ -47,6 +47,11 @@ jobs:
           $count = @($json.findings).Count
           Write-Host "findings: $count"
           if ($count -lt 1) { Write-Error "audit produced no findings"; exit 1 }
+          # Explicit exit: the runner's pwsh wrapper appends
+          # `if (Test-Path variable:\LASTEXITCODE) { exit $LASTEXITCODE }`,
+          # so the audit's own exit 1 would otherwise fail the step even
+          # after every assertion above passed.
+          exit 0
 
   # Cross-compile from Linux: catches build-tag drift that would break
   # contributors on macOS/Linux running `go test ./...` with the stubs.
