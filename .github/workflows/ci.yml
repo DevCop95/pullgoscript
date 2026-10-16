@@ -33,10 +33,20 @@ jobs:
       - name: build
         run: go build ./...
       - name: headless audit smoke test
+        shell: pwsh
         run: |
           go build -o obliteratus.exe ./cmd/obliteratus
           ./obliteratus.exe --audit --json > audit.json
-          Get-Content audit.json | ConvertFrom-Json | Select-Object -ExpandProperty findings | Measure-Object | Select-Object Count
+          $code = $LASTEXITCODE
+          # Exit 1 is the documented contract for "a CRITICAL/HIGH control is
+          # failing" — always true on a stock CI runner (Defender off, etc).
+          # Only 2+ means the binary crashed.
+          if ($code -ge 2) { Write-Error "audit crashed (exit $code)"; exit $code }
+          Write-Host "audit exit code: $code (1 = failing CRITICAL/HIGH control, expected on CI)"
+          $json = Get-Content audit.json -Raw | ConvertFrom-Json
+          $count = @($json.findings).Count
+          Write-Host "findings: $count"
+          if ($count -lt 1) { Write-Error "audit produced no findings"; exit 1 }
 
   # Cross-compile from Linux: catches build-tag drift that would break
   # contributors on macOS/Linux running `go test ./...` with the stubs.
