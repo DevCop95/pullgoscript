@@ -8,3 +8,10 @@ docs/* linguist-documentation=true
 # Ensure Go and Assembly are prioritized
 *.go linguist-detectable=true
 *.s linguist-detectable=true
+
+# Go sources must stay LF in every checkout: the windows-latest CI runner
+# (core.autocrlf=true) converted them to CRLF and gofmt -l flagged every
+# file, failing the build. Pinning eol=lf makes gofmt deterministic.
+*.go text eol=lf
+*.s   text eol=lf
+
