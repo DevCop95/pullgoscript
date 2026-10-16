@@ -1,25 +1,39 @@
-# OBLITERATUS - Build System (Orchestrator)
-# Objective: Minimal Signature Production and Cross-Platform Synthesis
+# OBLITERATUS build system
+# Default target produces a console binary so `--audit` output is visible.
 
-BINARY_NAME=obliteratus
-SRC_GO=./src/go
-SRC_C=./src/c
+BINARY   := obliteratus
+CMD      := ./cmd/obliteratus
+LDFLAGS  := -ldflags="-s -w"
 
-# Compilation Flags:
-# -s: Omit symbol table and debug information.
-# -w: Omit DWARF symbol table.
-# These flags reduce the binary size and complexity, maintaining 'Low Signal Profile'.
-LDFLAGS=-ldflags="-s -w"
+.PHONY: all build build-windowed cross audit test vet fmt clean
 
-all: build-windows
+all: test build
 
-build-windows:
-	@echo "[+] Synthesizing Windows Binary (Grade S)..."
-	@# Go automatically integrates .s files in the same package.
-	GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc go build $(LDFLAGS) -o bin/$(BINARY_NAME).exe $(SRC_GO)/*.go
+build:
+	@echo "[+] building windows/amd64 console binary..."
+	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o bin/$(BINARY).exe $(CMD)
+
+build-windowed:
+	@echo "[+] building windows/amd64 windowed binary (no console)..."
+	GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -H=windowsgui -o bin/$(BINARY).exe $(CMD)
+
+# Cross-compile check from any host (what CI runs on Linux).
+cross:
+	GOOS=windows GOARCH=amd64 go build ./...
+
+audit: build
+	./bin/$(BINARY).exe --audit
+
+test:
+	gofmt -l . | (! grep .) || (gofmt -l . && false)
+	go vet ./...
+	go test ./...
+
+vet:
+	go vet ./...
+
+fmt:
+	gofmt -w .
 
 clean:
-	@echo "[-] Cleaning Workspace..."
 	rm -rf bin/
-
-.PHONY: all build-windows build-linux clean

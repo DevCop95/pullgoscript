@@ -1,81 +1,160 @@
-# 🌌 OBLITERATUS - Advanced Red Teaming Framework
-### High-Fidelity Evasion & Identity Nexus Synchronization for Windows NT
+# OBLITERATUS — Windows Credential Exposure Auditor
+
+### The Mimikatz playbook, run as a defensive checklist
 
 <p align="center">
-  <img src="src/img/bin.jpg" alt="OBLITERATUS Master Console" width="100%">
+  <img src="docs/img/obliteratus.png" alt="OBLITERATUS dashboard" width="100%">
 </p>
 
-![Go](https://img.shields.io/badge/Go-00ADD8?style=for-the-badge&logo=go&logoColor=white)
-![Assembly](https://img.shields.io/badge/Assembly-00599C?style=for-the-badge&logo=cplusplus&logoColor=white)
-![License](https://img.shields.io/badge/Audit-Research-blue)
-![EDR-Evasion](https://img.shields.io/badge/EDR--Evasion-Elite-green?style=for-the-badge)
+[![CI](https://github.com/DevCop95/pullgoscript/actions/workflows/ci.yml/badge.svg)](https://github.com/DevCop95/pullgoscript/actions/workflows/ci.yml)
+![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go&logoColor=white)
+![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey?style=flat)
+![License](https://img.shields.io/badge/license-MIT-green?style=flat)
 
-**OBLITERATUS** is a sophisticated security orchestration engine designed for advanced post-exploitation research and defensive evasion testing. It implements a multi-layered stealth architecture to minimize the "Signature of Intent" while performing deep forensic analysis and identity correlation across modern Windows environments.
+**OBLITERATUS** answers one question — *would Mimikatz work against this host?* — and answers it with evidence: registry state, token privileges, service configuration and browser store exposure, each mapped to the exact Mimikatz module and MITRE technique it corresponds to.
+
+It ships as a single binary with two modes:
+
+| Mode | Command | Audience |
+|---|---|---|
+| **Headless audit** | `obliteratus.exe --audit` | CI, scripted hardening reviews, blue-team baselines |
+| **Local dashboard** | `obliteratus.exe` | Operators who want the interactive console on `127.0.0.1` |
+
+Offensive research modules (credential collection, indirect-syscall injection) are **compiled in but locked**: they answer `403` until the operator passes `--enable-collect` / `--enable-inject`.
 
 ---
 
-## ⚡ Technical Core & Evasion Layer
+## ⚡ Quick start
 
-### 🔬 Low-Level Execution Bridge ([Halo's Gate](HALOS_GATE.md))
-- **Indirect Syscalls:** Custom ASM bridge (`EnergyFlow`) dynamically resolves System Service Numbers (SSNs) and identifies syscall gadgets within `ntdll.dll`. See [HALOS_GATE.md](HALOS_GATE.md) for technical deep-dive.
-- **Stack Hygiene:** Strict adherence to Windows x64 calling conventions and shadow space management to mitigate stack-based anomaly detection.
+```powershell
+# build
+go build -o bin\obliteratus.exe .\cmd\obliteratus
 
-### 🛡️ Memory Hardening (W^X Strategy)
-- **Phase Transitioning:** Eliminates the `RWX` (Read-Write-Execute) footprint. Memory pages are allocated as `PAGE_READWRITE` (0x04) during initial sync and transmuted to `PAGE_EXECUTE_READ` (0x20) using `NtProtectVirtualMemory` immediately before execution.
-- **Handle Sanitization:** Precise lifecycle management via `NtClose`, preventing process-to-target linkage leakage in the kernel object table.
+# headless attack-surface audit (exit code 1 = CRITICAL/HIGH control failing)
+bin\obliteratus.exe --audit
 
-### 🧠 Identity Nexus & Intelligence
-- **Semantic Correlation:** Advanced "Identity Nexus" module that performs a Bayesian-like join between session cookies and saved credentials. It identifies **Critical Compromise Nodes** where an active session matches a stored identity, bypassing MFA requirements.
-- **App-Bound Research (v20):** Integrated COM-based suitor module that interacts with the `Google Chrome Elevation Service` (`IElevator`) to research bypasses for modern Chromium encrypted stores.
-- **VFS Forensic Sanitization:** Utilizes memory-backed SQLite processing to perform triple-copy snapshots (DB+WAL+SHM) with zero disk persistence in `%TEMP%`.
+# machine-readable variants
+bin\obliteratus.exe --audit --json > report.json
+bin\obliteratus.exe --audit --csv  > report.csv
 
-### 🔒 Zero-Trust Orchestration
-- **Ephemeral Tokenization:** All orchestration endpoints are shielded by a PID-based ephemeral token (`X-Signal-Token`), preventing unauthorized local process interference.
-- **Automatic UAC Elevation:** The binary self-elevates to Administrator on startup via `ShellExecuteW` with the `runas` verb, ensuring all privileged operations (registry writes, COM interfaces, memory manipulation) succeed without manual elevation.
-- **Handshake Protocol:** The C2 interface is hidden behind a simulated Apache 404 facade.
+# interactive dashboard (loopback only, ephemeral 256-bit token)
+bin\obliteratus.exe
+# → http://127.0.0.1:8080/   [add --elevate for privileged checks]
+```
+
+Or use the Makefile: `make build`, `make audit`, `make test`.
+
+---
+
+## 🔬 The audit checklist
+
+Every finding carries a stable ID, severity, evidence, remediation, the MITRE technique and the Mimikatz module it maps to.
+
+| ID | Control | Mimikatz module | MITRE | Severity |
+|---|---|---|---|---|
+| `MK-WDIGEST` | WDigest does not cache plaintext credentials | `sekurlsa::wdigest` | T1003.001 | CRITICAL |
+| `MK-AUTOLOGON-PASS` | No cleartext password in Winlogon | `winlogon\DefaultPassword` | T1552.001 | CRITICAL |
+| `MK-LSASS-PPL` | LSASS runs as a protected process | `sekurlsa::logonpasswords` | T1003.001 | HIGH |
+| `MK-CREDGUARD` | Credential Guard / VBS enabled | `sekurlsa::logonpasswords` | T1003.001 | HIGH |
+| `MK-SEDEBUG` | SeDebugPrivilege not enabled in token | `privilege::debug` | T1134.001 | HIGH |
+| `MK-AV` | Endpoint protection installed and enabled | — | T1562.001 | HIGH |
+| `MK-PSLOG` | PowerShell Script Block Logging enabled | — | T1059.001 | MEDIUM |
+| `MK-LAPS` | Managed local admin password in use | — | T1078.002 | MEDIUM |
+| `MK-AUTOLOGON` | Automatic logon disabled | `lsadump::secrets` | T1003.004 | MEDIUM |
+| `MK-SYSMON` | Sysmon / EDR telemetry installed | — | — | LOW |
+| `MK-CACHEDLOGONS` | Cached domain logon count reviewed | `lsadump::cache` | T1003.005 | INFO |
+| `MK-CONTEXT` | Audit execution context (elevated or not) | — | — | INFO |
+
+Checks degrade to `unknown` (never to a false `pass`) when a privilege or asset is missing — an honest audit reports what it could *not* see. Adding a check is one function plus one line in `RunChecks`; see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
+## 🖥️ Dashboard
+
+Local-only web console on `127.0.0.1` — sidebar layout with modal confirmations, toasts and CSV export:
+
+- **Attack-Surface Audit** — run the Mimikatz checklist interactively, CSV export.
+- **Processes** — live process table with filter and PID selection.
+- **System Optimizer** — one-click telemetry/privacy hardening (registry + `DiagTrack`).
+- **Terminal** — command console with streamed output.
+- **Hex viewer** — payload integrity inspection.
+- **Architect / Decrypter** — the *authorised* modules (locked by default): browser credential & cookie collection, Identity Nexus correlation, local SAM hash dump (`lsadump::sam`), injection research. Unlock with `--enable-collect` / `--enable-inject`.
+
 <p align="center">
-  <img src="src/img/notfound.png" alt="OBLITERATUS Facade" width="60%">
-  <br>
-  <i>The system remains dormant behind a 404 facade until the specific interaction sequence (3-click handshake or F2) is executed.</i>
+  <img src="docs/img/notfound.png" alt="404 facade" width="55%">
+  <br><i>The console hides behind a simulated Apache 404 until the handshake (3 clicks or F2) — cosmetic only; the real boundary is the per-run token.</i>
 </p>
 
 ---
 
-## 🖥️ Operational Interface (Master Console)
-Featuring a **KaliOS-inspired Dark Theme** with XFCE panel design and custom SVG dock icons:
-- **System Optimizer:** One-click kernel-level module to disable Windows Telemetry (`AllowTelemetry`), Error Reporting (`Disabled`), and Tracking (`Start_TrackProgs`) with `DiagTrack` service shutdown.
-- **Processes:** Real-time process enumeration with search filtering and PID selection.
-- **Architect Module:** Centralized node for process selection and signal synchronization (Quantum Sync, Nexus Correlation, Passwords, Cookies).
-- **Decrypter:** Real-time visualization of correlated credentials and active session tokens with CSV export.
-- **Terminal Console:** Integrated command execution terminal with live output streaming via WebSocket.
-- **Hex Live-Viewer:** Low-level buffer monitoring for payload integrity verification.
+## 🔒 Security model
+
+OBLITERATUS v1 had critical local exposure holes; v2 closes them and the test-suite pins the behaviour closed:
+
+| # | v1 problem | v2 control |
+|---|---|---|
+| 🔴 | Listened on **`:8080` (all interfaces)** — LAN-reachable console | Binds `127.0.0.1` only; `ListenAndServe` **refuses** non-loopback addresses |
+| 🔴 | Token derived from the **PID** (visible to any process) and echoed to unauthenticated `GET /` | 256-bit `crypto/rand` token, regenerated per run, constant-time compare |
+| 🔴 | `CheckOrigin: return true` — **any web page could open the WebSocket** and drive the console | Origin must be loopback **and** `?t=` token must match |
+| 🔴 | No Host validation — **DNS rebinding** could read the token from the page | Every route rejects non-loopback `Host` headers |
+| 🟠 | Mixed GET mutations, no method enforcement | `ServeMux` method patterns → automatic `405` on wrong verbs |
+| 🟠 | Token in HTML readable cross-origin (no CSP/headers) | Same-origin only + CSP, `nosniff`, `DENY` framing, `no-store` |
+| 🟠 | DOM XSS: DB-derived URLs rendered via `innerHTML` | All server data escaped through `window.esc()` before `innerHTML` |
+| 🟡 | Auto-UAC on every start | Elevation opt-in (`--elevate`) |
+| 🟡 | Credentialed collectors reachable by default | Locked behind `--enable-collect` / `--enable-inject`, fail closed with actionable `403` |
+
+**Trust boundary:** anyone who can read the dashboard page (loopback, same-origin) is the operator. Cross-site pages can *reach* the port but cannot read responses, cannot set the custom header without a preflight we never approve, and cannot complete the WebSocket handshake. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full threat model.
 
 ---
 
-## 🚀 Deployment & Reconstruction
+## 🗂️ Architecture
 
-### Compilation Protocol
-1.  **Environment:** Go 1.21+ required.
-2.  **Dependency Sync:**
-    ```powershell
-    go mod tidy
-    ```
-3.  **Stealth Build:** 
-    ```bash
-    go build -ldflags="-s -w -H=windowsgui" -o bin/obliteratus.exe ./src/go
-    ```
+```
+cmd/obliteratus/        CLI: flags, --audit mode, wiring
+internal/
+  audit/                ★ Mimikatz attack-surface checks + report (JSON/CSV)
+    host_windows.go       12 controls: WDigest, PPL, CredGuard, SeDebug…
+    collector_windows.go  authorised browser collectors (--enable-collect)
+    sam_windows.go         lsadump::sam: RegSaveKeyEx + [MS-SAMR] hash chain
+    regf.go                offline registry-hive parser (regf reader)
+  server/               Loopback HTTP API, auth middleware, WS hub, handlers
+  research/             Halo's Gate indirect-syscall bridge + injection (amd64)
+  token/                Per-run 256-bit token (crypto/rand, constant-time cmp)
+  ui/                   Embedded dashboard (//go:embed)
+  elevate/              Opt-in UAC relaunch
+  winutil/              Process table, telemetry hardening
+docs/                   HALOS_GATE research note, architecture, images
+build/                  Manifest for optional requireAdministrator builds
+```
 
-### Operational Use
-The binary automatically requests Administrator privileges via UAC on startup:
-1. Run `bin/obliteratus.exe` — UAC prompt will appear automatically.
-2. Connect via `http://localhost:8080`.
-3. Execute **Handshake Protocol** (3-click or F2) to initialize the signal.
-4. Status badge will display **[ADMIN]** confirming elevated privileges.
+- **Research notes:** [docs/HALOS_GATE.md](docs/HALOS_GATE.md) — SSN recovery, indirect syscalls, W^X page transitions (`NtAllocateVirtualMemory` RW → `NtProtectVirtualMemory` RX: no RWX page ever exists).
+- **Build details:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
+
+## 🧪 Testing
+
+```bash
+make test    # go vet + go test ./...   (server auth, WS handshake, report, audit)
+make build   # windows/amd64 binary
+make audit   # run the audit against this machine
+```
+
+CI runs `gofmt`, `go vet`, `go test` on Windows and cross-compiles from Linux on every push/PR.
+
+---
+
+## 🤝 Contributing
+
+New audit checks, fixes and docs are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Found a vulnerability in the dashboard/API? See [SECURITY.md](SECURITY.md).
+
+## 📄 License
+
+[MIT](LICENSE) © DevCop95 (Yared Henríquez).
 
 ## ⚠️ Disclaimer
-**OBLITERATUS** is intended strictly for authorized security auditing, research, and educational purposes. The developer assumes no responsibility for unauthorized use. Accessing private data without explicit permission is illegal and unethical.
+
+OBLITERATUS is for **authorized security assessment, research and education** on systems you own or are contracted to test. The credential-collection and injection modules are deliberately locked; unlocking them is an explicit acknowledgement that your engagement permits their use. Unauthorized access to computer systems is illegal.
 
 ---
-*Engineering Cyber-Resilience through Offensive Innovation.*
+*Assume breach. Audit the credentials before someone else does.*

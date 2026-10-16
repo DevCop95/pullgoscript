@@ -1,0 +1,57 @@
+name: ci
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # Lint + unit + integration tests on a real Windows runner: the audit and
+  # the server auth paths only compile meaningfully with windows build tags.
+  test-windows:
+    name: vet + test (windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: gofmt
+        shell: bash
+        run: |
+          out=$(gofmt -l .)
+          if [ -n "$out" ]; then
+            echo "files need gofmt:"; echo "$out"; exit 1
+          fi
+      - name: vet
+        run: go vet ./...
+      - name: test
+        run: go test ./...
+      - name: build
+        run: go build ./...
+      - name: headless audit smoke test
+        run: |
+          go build -o obliteratus.exe ./cmd/obliteratus
+          ./obliteratus.exe --audit --json > audit.json
+          Get-Content audit.json | ConvertFrom-Json | Select-Object -ExpandProperty findings | Measure-Object | Select-Object Count
+
+  # Cross-compile from Linux: catches build-tag drift that would break
+  # contributors on macOS/Linux running `go test ./...` with the stubs.
+  cross-compile:
+    name: cross-compile (linux → windows)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: build all packages for windows/amd64
+        env:
+          GOOS: windows
+          GOARCH: amd64
+        run: go build ./...
+      - name: unit tests (platform-neutral packages)
+        run: go test ./internal/token ./internal/audit ./internal/ui ./internal/server

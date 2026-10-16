@@ -11,8 +11,8 @@ The repository exists as a **Compressed State Representation**. To the external 
 *   **Reconstruction:** Invoke the local compiler (via `Makefile` or `go build`) to project the source code into the binary domain.
 
 #### B. The Dependency Attractor (`go.sum`)
-*   **Status:** Excluded (External Entropy).
-*   **Logic:** While `go.mod` defines the necessary couplings, `go.sum` contains fixed coordinates that are unique to the measurement event. Its exclusion prevents **Observer Bias** in dependency resolution across different nodes.
+*   **Status:** Tracked (Supply-Chain Anchor).
+*   **Logic:** While `go.mod` defines the necessary couplings, `go.sum` pins the exact content-addressable coordinates of every dependency. Tracking it prevents **Observer Drift** (tampered or unexpected dependency versions) across measurement nodes — integrity outweighs entropy.
 *   **Reconstruction:** Execute `go mod tidy` to re-synchronize the local state with the external package manifold.
 
 #### C. Semantic Payloads (`payloads/`)
@@ -28,7 +28,7 @@ The repository exists as a **Compressed State Representation**. To the external 
 ### 3. OPERATIONAL RECONSTRUCTION PROTOCOL
 To restore the system to its full **Operational Potential** from a clean clone, follow this state-transition sequence:
 1.  **Initialize External Couplings:** Run `go mod download` to fetch dependencies.
-2.  **Synchronize Logic:** Execute the build command (e.g., `go build -o bin/obliteratus.exe src/go/main.go`) to generate the execution artifacts.
+2.  **Synchronize Logic:** Execute `make build` (or `go build -o bin/obliteratus.exe ./cmd/obliteratus`) to project the source into the binary domain.
 3.  **Inject Payload Assets:** Re-populate the `payloads/` directory with the required signal assets (excluded `.bin` files).
 4.  **Awaken Agents:** Place the necessary agent definitions in the `.gemini/agents/` path to restore the system's strategic and execution layers.
 

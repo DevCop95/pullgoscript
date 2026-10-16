@@ -1,4 +1,5 @@
-// +build amd64
+//go:build windows && amd64
+// +build windows,amd64
 
 #include "textflag.h"
 
@@ -6,7 +7,7 @@
 // Reconstrucción Técnica: Equilibrio de Nash en el Stack
 // Convención Windows x64: RCX(R10), RDX, R8, R9 + Stack (Shadow Space 32 bytes)
 
-TEXT ·EnergyFlow(SB), NOSPLIT, $128-112
+TEXT ·EnergyFlow(SB), NOSPLIT, $128-108
     // Cargamos los registros de control desde el stack de Go (FP)
     MOVQ a1+0(FP), R10      // arg1 para syscall
     MOVL id+8(FP), AX       // SSN (System Service Number)
@@ -30,6 +31,8 @@ TEXT ·EnergyFlow(SB), NOSPLIT, $128-112
     // Ejecución indirecta
     // Usamos CALL para mantener la higiene del stack y permitir un retorno limpio a Go
     CALL R11
-    
-    // El resultado del syscall ya está en AX
+
+    // El resultado del syscall (NTSTATUS) ya está en AX: lo devolvemos al
+    // caller de Go a través del slot de retorno (ABI0, offset 104).
+    MOVL AX, ret+104(FP)
     RET

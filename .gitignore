@@ -12,10 +12,12 @@ bin/
 payloads/*.bin
 !payloads/research_signal.bin
 
-# Go dependencies and cache
+# Go dependencies
+# NOTE: go.sum IS tracked (supply-chain integrity pinning); only the module
+# cache/vendor dir is excluded.
 vendor/
-go.sum
 go.work
+go.work.sum
 
 # OS metadata
 .DS_Store
