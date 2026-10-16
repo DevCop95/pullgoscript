@@ -388,7 +388,7 @@ func (s *Server) handleSAMStream(w http.ResponseWriter, r *http.Request) {
 	if !elevate.IsAdmin() {
 		sendJSON(w, http.StatusForbidden, map[string]string{
 			"error": "SAM dump requires an elevated token",
-			"hint":  "restart obliteratus with --elevate (reg save needs backup privileges)",
+			"hint":  "--enable-collect auto-elevates via UAC; the relaunch did not yield an elevated token — re-run from an Administrator prompt",
 		})
 		return
 	}
@@ -397,16 +397,34 @@ func (s *Server) handleSAMStream(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			s.logLine("SAM_FAIL: "+err.Error(), "ERROR")
 		}
-		if len(accounts) > 0 {
-			s.hub.broadcastJSON(map[string]interface{}{
-				"type":    "sam_chunk",
-				"entries": accounts,
-			})
+		for _, ev := range samTerminalEvents(accounts, err) {
+			s.hub.broadcastJSON(ev)
 		}
-		s.hub.broadcastJSON(map[string]interface{}{"type": "sam_done"})
 	}()
 	w.Header().Set("Content-Type", "text/plain")
 	_, _ = w.Write([]byte("OK"))
+}
+
+// samTerminalEvents turns the outcome of one DumpSAM attempt into the WebSocket
+// events the dashboard expects. A failure yields exactly one sam_error event and
+// never a bare sam_done: the old code always sent sam_done, so every dump
+// failure rendered as the misleading "no SAM material (needs elevation)" empty
+// state even when the token was already elevated. Split out so both branches are
+// covered by tests that do not need an elevated token.
+func samTerminalEvents(accounts []audit.SAMAccount, err error) []interface{} {
+	if err != nil {
+		return []interface{}{
+			map[string]interface{}{"type": "sam_error", "error": err.Error()},
+		}
+	}
+	events := make([]interface{}, 0, 2)
+	if len(accounts) > 0 {
+		events = append(events, map[string]interface{}{
+			"type":    "sam_chunk",
+			"entries": accounts,
+		})
+	}
+	return append(events, map[string]interface{}{"type": "sam_done"})
 }
 
 // logEmitter adapts the audit progress callbacks to the console broadcast.
@@ -571,7 +589,7 @@ func (s *Server) handleLSASS(w http.ResponseWriter, r *http.Request) {
 	if !elevate.IsAdmin() {
 		sendJSON(w, http.StatusForbidden, map[string]string{
 			"error": "LSASS dump requires an elevated token",
-			"hint":  "restart obliteratus with --elevate",
+			"hint":  "--enable-collect auto-elevates via UAC; re-run from an Administrator prompt if the relaunch was declined",
 		})
 		return
 	}
@@ -586,14 +604,28 @@ func (s *Server) handleLSASS(w http.ResponseWriter, r *http.Request) {
 		path, size, err := audit.DumpLSASS(req.PID, "", s.logEmitter())
 		if err != nil {
 			s.logLine("LSASS_FAIL: "+err.Error(), "ERROR")
-			return
 		}
-		s.hub.broadcastJSON(map[string]interface{}{
-			"type": "lsass_done", "path": path, "size": size,
-		})
+		for _, ev := range lsassTerminalEvents(path, size, err) {
+			s.hub.broadcastJSON(ev)
+		}
 	}()
 	w.Header().Set("Content-Type", "text/plain")
 	_, _ = w.Write([]byte("OK"))
+}
+
+// lsassTerminalEvents mirrors samTerminalEvents for the LSASS dump: a failure
+// produces a single lsass_error event. The old code logged and returned without
+// broadcasting anything, so the dashboard waited forever for a lsass_done that
+// never arrived.
+func lsassTerminalEvents(path string, size int64, err error) []interface{} {
+	if err != nil {
+		return []interface{}{
+			map[string]interface{}{"type": "lsass_error", "error": err.Error()},
+		}
+	}
+	return []interface{}{
+		map[string]interface{}{"type": "lsass_done", "path": path, "size": size},
+	}
 }
 
 // lsassDumpName matches the filenames audit.DumpLSASS writes:

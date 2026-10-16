@@ -48,7 +48,8 @@ These are features, not bugs — they are the reason the tool exists:
 - `--enable-collect` decrypts browser credential stores **on the local host**.
 - `POST /v1/sys/sam` exports the local SAM/SYSTEM hives with `RegSaveKeyEx`
   and decrypts the local account hashes **on the local host** (same
-  `--enable-collect` gate; also requires an elevated token).
+  `--enable-collect` gate; also requires an elevated token, which
+  `--enable-collect` requests via UAC at startup).
 - `--enable-inject` performs W^X process injection **on an operator-selected
   local PID**.
 

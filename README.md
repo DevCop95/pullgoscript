@@ -9,7 +9,7 @@
 [![CI](https://github.com/DevCop95/pullgoscript/actions/workflows/ci.yml/badge.svg)](https://github.com/DevCop95/pullgoscript/actions/workflows/ci.yml)
 ![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go&logoColor=white)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey?style=flat)
-![Version](https://img.shields.io/badge/version-2.0.0-00a2ed?style=flat)
+![Version](https://img.shields.io/badge/version-2.0.1-00a2ed?style=flat)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat)
 
 **OBLITERATUS** answers one question — *would Mimikatz work against this host?* — and answers it with evidence: registry state, token privileges, service configuration and browser store exposure, each mapped to the exact Mimikatz module and MITRE technique it corresponds to.
@@ -55,6 +55,8 @@ bin\obliteratus.exe
 
 # full operator console: every module unlocked
 bin\obliteratus.exe --enable-collect --enable-persist --enable-evasion --enable-lateral --enable-inject
+# --enable-collect auto-elevates via UAC: the SAM hives, LSASS and the
+# browser App-Bound key unwrap cannot work with a filtered token.
 ```
 
 Or use the Makefile: `make build`, `make audit`, `make test`, `make cross`.
@@ -66,10 +68,10 @@ Or use the Makefile: `make build`, `make audit`, `make test`, `make cross`.
 | `--addr` | `127.0.0.1:8080` | Listen address. **Must be loopback** — the server refuses anything else |
 | `--audit` | `false` | Run the audit headlessly and exit |
 | `--json` / `--csv` | `false` | Emit the audit report in machine-readable form |
-| `--elevate` | `false` | Re-launch elevated via UAC (opt-in; no silent auto-UAC) |
+| `--elevate` | `false` | Force a UAC relaunch up front. Also implied by `--enable-collect`, which cannot work unelevated |
 | `--payload` | `payloads/research_signal.bin` | Payload file for the injection module |
 | `--payload-key` | `""` | Passphrase to unpack an encrypted payload (see `cmd/oblpack`) |
-| `--enable-collect` | `false` | UNLOCK credential/cookie collection |
+| `--enable-collect` | `false` | UNLOCK credential/cookie collection (**auto-elevates via UAC**) |
 | `--enable-persist` | `false` | UNLOCK the persistence manager |
 | `--enable-evasion` | `false` | UNLOCK self-telemetry evasion |
 | `--enable-lateral` | `false` | UNLOCK lateral movement (WinRM + SCM) |
@@ -138,8 +140,9 @@ OBLITERATUS v1 had critical local exposure holes; v2 closes them and the test-su
 | 🟠 | Mixed GET mutations, no method enforcement | `ServeMux` method patterns → automatic `405` on wrong verbs |
 | 🟠 | Token in HTML readable cross-origin (no CSP/headers) | Same-origin only + CSP, `nosniff`, `DENY` framing, `no-store` |
 | 🟠 | DOM XSS: DB-derived URLs rendered via `innerHTML` | All server data escaped through `window.esc()` before `innerHTML` |
-| 🟡 | Auto-UAC on every start | Elevation opt-in (`--elevate`) |
+| 🟡 | Auto-UAC on every start | Elevation only when asked for: `--elevate`, or a module that cannot work unelevated (`--enable-collect`) |
 | 🟡 | Credentialed collectors reachable by default | Locked behind `--enable-*` flags, fail closed with an actionable `403` |
+| 🟡 | Privileged modules failed **opaquely** — SAM errors rendered as "no SAM material", LSASS failures hung the UI | Real cause streamed to the dashboard (`sam_error` / `lsass_error`); UAC is requested up front, and a relaunch that yields no elevated token fails loudly instead of looping |
 
 **Trust boundary:** anyone who can read the dashboard page (loopback, same-origin) is the operator. Cross-site pages can *reach* the port but cannot read responses, cannot set the custom header without a preflight we never approve, and cannot complete the WebSocket handshake. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full threat model and [SECURITY.md](SECURITY.md) for the reporting process.
 
@@ -180,7 +183,7 @@ internal/
   server/               Loopback HTTP API, auth middleware, WS hub, handlers
   token/                Per-run 256-bit token (crypto/rand, constant-time cmp)
   ui/                   Embedded dashboard (//go:embed)
-  elevate/              Opt-in UAC relaunch
+  elevate/              UAC relaunch (--elevate, or forced by --enable-collect)
   winutil/              Process table, telemetry hardening
 docs/                   HALOS_GATE research note, architecture, images
 build/                  Manifest for optional requireAdministrator builds
