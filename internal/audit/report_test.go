@@ -141,3 +141,34 @@ func TestReportJSONShape(t *testing.T) {
 		t.Fatalf("summary in JSON = %v", decoded.Summary)
 	}
 }
+
+// TestReportStringIsGreppable pins the human-readable rendering used as the
+// default `--audit` output: one line per finding, severity first, so operators
+// (and their scripts) can read or grep it without parsing JSON.
+func TestReportStringIsGreppable(t *testing.T) {
+	r := NewReport("1.2.3", true, nil)
+	r.Hostname = "host-1"
+	r.Add(Finding{ID: "MK-WDIGEST", Severity: Critical, Status: StatusFail, Title: "WDigest stores plaintext"})
+	r.Add(Finding{ID: "MK-AV", Severity: Info, Status: StatusPass, Title: "AV present"})
+	r.Finalize()
+
+	got := r.String()
+	for _, want := range []string{
+		"OBLITERATUS audit",
+		"host-1",
+		"elevated=true",
+		"[CRITICAL]",
+		"MK-WDIGEST",
+		"WDigest stores plaintext",
+		"[INFO]",
+		"MK-AV",
+		"summary:",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("report output is missing %q:\n%s", want, got)
+		}
+	}
+	if lines := strings.Count(strings.TrimRight(got, "\n"), "\n") + 1; lines != 1+2+1 {
+		t.Errorf("got %d lines, want header + 2 findings + summary", lines)
+	}
+}

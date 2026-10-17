@@ -52,7 +52,25 @@ func TestWebSocketRequiresTokenAndOrigin(t *testing.T) {
 	}
 	defer conn.Close()
 
-	// 4. Broadcast reaches the authenticated client.
+	// 4. Broadcast reaches the authenticated client. d.Dial returns as soon as
+	//    the client sees the 101, but the server goroutine may not have reached
+	//    s.hub.add yet — broadcasting here would race the registration and drop
+	//    the frame, flaking the read below under load. Wait for the socket to
+	//    land in the hub first.
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		s.hub.mu.Lock()
+		registered := len(s.hub.clients) > 0
+		s.hub.mu.Unlock()
+		if registered {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("websocket client never registered with the hub")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+
 	s.hub.broadcastLog("hello", "INFO")
 	_ = conn.SetReadDeadline(time.Now().Add(3 * time.Second))
 	var msg map[string]string
