@@ -2,16 +2,17 @@
 // goes stale between releases.
 //
 // Every string that comes from the API is written with textContent, never
-// innerHTML, and every href is checked against this repo's own asset prefix
-// before it is assigned. The console's v1 had a DOM XSS from rendering
-// server data through innerHTML; a docs page fed by an API deserves the same
-// discipline.
+// innerHTML, and every href is resolved and checked against this repo's own
+// asset path before it is assigned. The console's v1 had a DOM XSS from
+// rendering server data through innerHTML; a docs page fed by an API deserves
+// the same discipline.
 (function () {
   "use strict";
 
   var REPO = "DevCop95/pullgoscript";
   var API = "https://api.github.com/repos/" + REPO + "/releases/latest";
-  var PREFIX = "https://github.com/" + REPO + "/releases/download/";
+  var ORIGIN = "https://github.com";
+  var ASSET_PATH = "/" + REPO + "/releases/download/";
 
   var mount = document.getElementById("dl-live");
   var fallback = document.getElementById("dl-fallback");
@@ -25,8 +26,26 @@
     return n;
   }
 
+  // A startsWith check on the raw string is not enough. This URL starts with
+  // the asset prefix and still resolves outside the download path:
+  //
+  //   https://github.com/DevCop95/pullgoscript/releases/download/v9/../../../evil
+  //                                          -> https://github.com/DevCop95/evil
+  //
+  // So resolve the URL and check the origin and the path it actually ends up
+  // at. Anything that survives the string check but escapes after resolution
+  // is dropped, which fails closed: no row, and the caller falls back.
   function safeURL(u) {
-    return typeof u === "string" && u.indexOf(PREFIX) === 0 ? u : null;
+    if (typeof u !== "string" || u.indexOf(ORIGIN + ASSET_PATH) !== 0) return null;
+    var parsed;
+    try {
+      parsed = new URL(u);
+    } catch (err) {
+      return null;
+    }
+    if (parsed.origin !== ORIGIN) return null;
+    if (parsed.pathname.indexOf(ASSET_PATH) !== 0) return null;
+    return parsed.href;
   }
 
   function human(bytes) {
@@ -49,7 +68,7 @@
     var assets = (release.assets || []).filter(function (a) {
       return safeURL(a.browser_download_url);
     });
-    if (!assets.length) throw new Error("the latest release has no assets");
+    if (!assets.length) throw new Error("no release asset survived the URL check");
 
     var table = el("table");
     table.appendChild(el("caption", "Latest release: " + release.tag_name +
@@ -101,7 +120,7 @@
         .catch(function () { render(release, {}); });
     })
     .catch(function (err) {
-      status.textContent = "Could not read the release list automatically (" +
+      status.textContent = "Could not build the live table automatically (" +
         err.message + "). The pinned list below is the v2.0.2 snapshot; the " +
         "Releases page is always current.";
       if (fallback) fallback.hidden = false;
