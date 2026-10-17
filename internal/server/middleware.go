@@ -27,11 +27,19 @@ var loopbackHosts = map[string]bool{
 // loopback with a numeric port is refused.
 //
 // Note that net.SplitHostPort validates the *shape* of an address, not its
-// contents: it happily returns host "127.0.0.1" and port "8080/evil" for
-// "127.0.0.1:8080/evil". Trusting it would accept host strings no parser ever
-// meant to hand us, so the port is checked explicitly. The stdlib HTTP server
-// rejects such a Host header before it reaches a handler, which is why this is
-// hardening rather than a live bypass — but a guard should mean what it says.
+// contents, and it is more permissive than it looks: for "127.0.0.1:8080/evil"
+// it returns host "127.0.0.1" with port "8080/evil", and for "127.0.0.1:8a08"
+// and "127.0.0.1:" it returns no error at all. The stdlib HTTP server only
+// rejects the first shape — a Host containing "/" never reaches a handler (400
+// before this code runs) — so for a non-numeric or empty port this explicit
+// isPort check is the only control, not a belt over the stdlib's braces. That
+// was verified against the live listener, not assumed.
+//
+// None of the three is a live bypass: a rebinding page cannot make a browser
+// send a loopback-looking Host, it supplies its own hostname. But the guard is
+// asserted here rather than left to the stdlib, and those exact host strings
+// are pinned in the fuzz seed corpus (FuzzValidHost), so the check cannot
+// quietly become permissive again.
 func validHost(hostport string) bool {
 	host := hostport
 	if h, p, err := net.SplitHostPort(hostport); err == nil {

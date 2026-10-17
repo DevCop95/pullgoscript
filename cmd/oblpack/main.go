@@ -17,11 +17,22 @@ import (
 	"github.com/DevCop95/obliteratus/internal/research"
 )
 
+// version is stamped by goreleaser (see the oblpack build in .goreleaser.yml)
+// and is what `-version` reports. The literal covers a plain `go build`, and
+// must track the newest tag for the same reason as cmd/obliteratus.
+var version = "2.0.2"
+
 func main() {
 	key := flag.String("key", "", "packing passphrase (hashed to a 32-byte AES-256 key)")
 	in := flag.String("in", "payloads/research_signal.bin", "input payload file")
 	out := flag.String("out", "", "output file (default: <in>.packed)")
+	showVersion := flag.Bool("version", false, "print version and exit")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("oblpack %s\n", version)
+		return
+	}
 
 	if *key == "" {
 		fatalf("-key is required")

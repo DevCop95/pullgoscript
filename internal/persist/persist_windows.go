@@ -4,6 +4,7 @@ package persist
 
 import (
 	"bytes"
+	"context"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -12,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"golang.org/x/sys/windows/registry"
 )
@@ -155,12 +157,37 @@ func removeStartup(name string) error {
 
 const taskPrefix = "OBL_"
 
+// runHiddenBudget bounds every child process this module spawns. The Task
+// Scheduler and WMI are the classic Windows hang: schtasks can wedge for
+// minutes behind a stuck Task Scheduler or RPCSS, and exec.Command waits with
+// no deadline at all, which used to pin an HTTP handler (and its goroutine)
+// for as long as the wedge lasted. Measured on a stock workstation a full
+// List() takes ~5.5s, so this is a liveness bound rather than a latency target.
+//
+// It is a var only so a test can shrink it; nothing mutates it at runtime.
+var runHiddenBudget = 20 * time.Second
+
+// runHiddenWaitDelay bounds how long Wait may keep draining the child's pipes
+// after the context is done. Killing `cmd /c …` or powershell does not kill
+// what they spawned, and the inherited pipe stays open until that grandchild
+// exits — without this, the timeout would still block on the pipe read.
+const runHiddenWaitDelay = 2 * time.Second
+
 // runHidden runs a child process with no visible window and returns its
-// combined output.
+// combined output within runHiddenBudget.
 func runHidden(name string, args ...string) ([]byte, error) {
-	cmd := exec.Command(name, args...) //#nosec G204 -- name/args are internal constants and generated task names, never operator input
+	ctx, cancel := context.WithTimeout(context.Background(), runHiddenBudget)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, name, args...) //#nosec G204 -- name/args are internal constants and generated task names, never operator input
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-	return cmd.CombinedOutput()
+	cmd.WaitDelay = runHiddenWaitDelay
+	out, err := cmd.CombinedOutput()
+	if ctx.Err() == context.DeadlineExceeded {
+		// Name the cause: "schtasks exit status 1" and "schtasks never came
+		// back" are different problems for whoever is debugging.
+		return out, fmt.Errorf("%s: timed out after %s", name, runHiddenBudget)
+	}
+	return out, err
 }
 
 func addTask(name, command, schedule, startTime string) error {
