@@ -5,6 +5,7 @@ package persist
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestPsQuote(t *testing.T) {
@@ -118,5 +119,34 @@ func TestWMIRemoveCandidates(t *testing.T) {
 	// Already prefixed: no duplicate candidate.
 	if got := wmiRemoveCandidates(wmiNamePrefix + "x"); len(got) != 1 || got[0] != wmiNamePrefix+"x" {
 		t.Fatalf("wmiRemoveCandidates(prefixed) = %v, want a single entry", got)
+	}
+}
+
+// TestRunHiddenTimesOut pins the liveness bound. Before it, a wedged schtasks
+// or WMI call held the HTTP handler forever, because exec.Command waits with
+// no deadline.
+//
+// The sleep has to be a real child process: `timeout /t` is unusable here
+// because it refuses to run without a console, which is exactly how runHidden
+// spawns its children. `ping -n 10` occupies the child for ~9s, so a 300ms
+// budget leaves a wide margin between "the context fired" and "the child would
+// have finished anyway".
+func TestRunHiddenTimesOut(t *testing.T) {
+	prev := runHiddenBudget
+	runHiddenBudget = 300 * time.Millisecond
+	defer func() { runHiddenBudget = prev }()
+
+	start := time.Now()
+	_, err := runHidden("ping", "-n", "10", "127.0.0.1")
+	elapsed := time.Since(start)
+
+	if err == nil {
+		t.Fatal("runHidden returned a nil error for a child that outlived the budget")
+	}
+	if !strings.Contains(err.Error(), "timed out") {
+		t.Fatalf("want an explicit timeout error, got %v", err)
+	}
+	if elapsed > 4*time.Second {
+		t.Fatalf("runHidden returned after %s: the context was not enforced", elapsed)
 	}
 }

@@ -40,7 +40,8 @@ builds:
       - -s -w
       - -X main.version={{ .Version }}
 
-  # Payload packer. No version stamp — it is stateless tooling.
+  # Payload packer. Stateless, but stamped anyway so a shipped copy can
+  # identify itself when an operator reports a problem with it.
   - id: oblpack
     main: ./cmd/oblpack
     binary: oblpack
@@ -53,6 +54,7 @@ builds:
       - arm64
     ldflags:
       - -s -w
+      - -X main.version={{ .Version }}
 
 archives:
   - id: default
