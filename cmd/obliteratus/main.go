@@ -29,8 +29,11 @@ import (
 	"github.com/DevCop95/obliteratus/internal/token"
 )
 
-// version is the release identifier shown in /v1/sys/st and audit reports.
-const version = "2.0.1"
+// version is the release identifier shown in /v1/sys/st and audit reports. It
+// is a var, not a const, so goreleaser can stamp the tag into it at link time
+// via -ldflags "-X main.version={{.Version}}" (ldflags cannot write a const).
+// The literal below is the value used by `go build`/`go run` outside a release.
+var version = "2.0.1"
 
 func main() {
 	// Hidden internal mode: the collector re-launches this binary as SYSTEM

@@ -1,0 +1,121 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+#
+# OBLITERATUS release pipeline. Driven by .github/workflows/release.yml on a
+# `v*` tag; run locally with `goreleaser release --snapshot --clean` (dry-run:
+# no publish, no signing needed).
+#
+# Supply chain, in order of what a downloader should verify:
+#   1. checksums.txt        — SHA-256 of every archive
+#   2. checksums.txt.sig /  — cosign *keyless* signature + short-lived cert for
+#      .pem                  the checksum file (Sigstore / Rekor transparency log)
+#   3. *.sbom.json          — SPDX SBOM per archive (syft)
+#   4. Windows Authenticode — NOT applied here; see docs/SIGNING.md for why and
+#                             how an operator adds it with a real cert.
+version: 2
+
+project_name: obliteratus
+
+before:
+  hooks:
+    # Fail the release if the module graph is not tidy rather than shipping a
+    # tag whose go.mod disagrees with the tree.
+    - go mod tidy
+
+builds:
+  # The operator console + audit binary. Version is stamped from the tag; the
+  # in-tree default (cmd/obliteratus/main.go) is only for `go run`/`go build`.
+  - id: obliteratus
+    main: ./cmd/obliteratus
+    binary: obliteratus
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    # windowsgui would strip the console used by `--audit`; ship the console
+    # build so headless output is always visible, matching the Makefile default.
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+
+  # Payload packer. No version stamp — it is stateless tooling.
+  - id: oblpack
+    main: ./cmd/oblpack
+    binary: oblpack
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+
+archives:
+  - id: default
+    formats: [zip]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    files:
+      - README.md
+      - SECURITY.md
+      - LICENSE
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+# SPDX SBOM per archive via syft (installed by the release workflow). This is
+# the machine-readable inventory of every dependency in the shipped binary.
+sboms:
+  - id: archive-sbom
+    artifacts: archive
+
+# Keyless signing: no long-lived key or cert to leak. cosign mints a short-lived
+# certificate bound to the GitHub Actions OIDC identity, signs checksums.txt and
+# records the signature in the Rekor transparency log. Verify with the identity
+# documented in docs/SIGNING.md. Requires `id-token: write` (see workflow).
+signs:
+  - id: checksums
+    cmd: cosign
+    artifacts: checksum
+    output: true
+    certificate: "${artifact}.pem"
+    args:
+      - sign-blob
+      - "--yes"
+      - "--output-signature=${signature}"
+      - "--output-certificate=${certificate}"
+      - "${artifact}"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^chore"
+      - "^ci:"
+      - "^test:"
+      - "Merge pull request"
+      - "Merge branch"
+
+release:
+  draft: false
+  prerelease: auto
+  footer: |
+    ## Verifying this release
+
+    Every archive is covered by `checksums.txt`. The checksum file is signed
+    **keyless** with cosign — the signature is in `checksums.txt.sig` and the
+    ephemeral certificate in `checksums.txt.pem`, with the transparency-log
+    entry in Rekor. Full commands (and the Authenticode / SmartScreen note for
+    Windows) are in `docs/SIGNING.md`.
+
+    > ⚠️ OBLITERATUS ships offensive modules (credential collection, injection,
+    > persistence). Windows Defender / SmartScreen **will** flag the unsigned
+    > executables. That is expected: the binaries are not Authenticode-signed.
+    > Verify against the checksums above, and run only on systems you are
+    > authorised to test.

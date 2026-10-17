@@ -1,0 +1,59 @@
+name: release
+
+# Cut a release by pushing a semver tag:  git tag v2.0.2 && git push origin v2.0.2
+# The workflow builds, packages, checksums, SBOMs and keyless-signs the
+# artifacts, then publishes a GitHub Release. Nothing here needs a stored
+# secret: the signature identity is the workflow's own OIDC token.
+on:
+  push:
+    tags:
+      - "v*"
+
+# Least privilege. `contents: write` creates the Release; `id-token: write` is
+# what lets cosign do *keyless* signing (mint a short-lived cert from the
+# workflow identity) instead of using a long-lived private key.
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  goreleaser:
+    name: build + sign + publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history + all tags: the changelog and `{{ .PreviousTag }}` are
+          # computed with git, which a shallow clone breaks.
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      # syft powers the SPDX SBOMs declared under `sboms:` in .goreleaser.yml.
+      - uses: anchore/sbom-action/download-syft@v0
+
+      # cosign powers the keyless signature on checksums.txt. The installer
+      # pins a verified release and puts it on PATH for goreleaser to invoke.
+      - uses: sigstore/cosign-installer@v3
+
+      - name: goreleaser release
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Self-check: prove the signature actually verifies before we call the
+      # release done. Verification is certificate-identity based — the same
+      # command a downloader runs (see docs/SIGNING.md).
+      - name: verify keyless signature on checksums.txt
+        run: |
+          cosign verify-blob \
+            --certificate dist/checksums.txt.pem \
+            --signature   dist/checksums.txt.sig \
+            --certificate-identity-regexp "^https://github.com/${GITHUB_REPOSITORY}/" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            dist/checksums.txt
