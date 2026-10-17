@@ -46,6 +46,3 @@ func DumpSAM(Emitter) ([]SAMAccount, error) { return nil, nil }
 func DumpLSASS(int, string, Emitter) (string, int64, error) {
 	return "", 0, fmt.Errorf("lsass: unsupported on this platform")
 }
-
-// WipeFile is a no-op off Windows.
-func WipeFile(string) error { return nil }
