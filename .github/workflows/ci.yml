@@ -139,17 +139,20 @@ jobs:
   sast:
     name: gosec (static analysis)
     runs-on: ubuntu-latest
-    env:
-      GOOS: windows
-      GOARCH: amd64
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
+      # Installed with the *runner's* GOOS. Setting GOOS=windows here would make
+      # this step cross-compile gosec to a PE binary (gosec.exe) that the Linux
+      # runner cannot execute; it is scoped to the scan step below instead.
       - name: install gosec
         run: go install github.com/securego/gosec/v2/cmd/gosec@latest
       - name: gosec
+        env:
+          GOOS: windows
+          GOARCH: amd64
         run: |
           # setup-go does not put $(go env GOPATH)/bin on PATH, so resolve the
           # binary explicitly rather than relying on `gosec` being found.
