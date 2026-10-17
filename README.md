@@ -12,6 +12,8 @@
 ![Version](https://img.shields.io/badge/version-2.0.2-00a2ed?style=flat)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat)
 
+**[Project site](https://devcop95.github.io/pullgoscript/)** — the same information, laid out as a browsable reference: every route with the flag that unlocks it, the twelve audit controls, how to verify a release, and the security model with its two documented limits. The download table reads the newest release from the GitHub API, so it does not go stale between releases.
+
 **OBLITERATUS** answers one question — *would Mimikatz work against this host?* — and answers it with evidence: registry state, token privileges, service configuration and browser store exposure, each mapped to the exact Mimikatz module and MITRE technique it corresponds to.
 
 It ships as a single binary with two modes:

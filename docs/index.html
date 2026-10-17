@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OBLITERATUS — Windows credential exposure auditor</title>
+<meta name="description" content="OBLITERATUS audits a Windows host for the credential-exposure conditions Mimikatz depends on, maps each finding to the MITRE technique, and ships the offensive modules compiled in but locked behind explicit flags.">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html">OBLITER<span>ATUS</span></a>
+    <nav class="main">
+      <a href="#download">Download</a>
+      <a href="capabilities.html">Capabilities</a>
+      <a href="audit.html">Audit checks</a>
+      <a href="verify.html">Verify</a>
+      <a href="security.html">Security model</a>
+      <a href="https://github.com/DevCop95/pullgoscript">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1>Windows Credential Exposure Auditor</h1>
+  <p class="tagline">The Mimikatz playbook, run as a defensive checklist.</p>
+
+  <div class="pills">
+    <span class="pill">Windows 10/11 &middot; amd64 &amp; arm64</span>
+    <span class="pill">Go 1.26.9+</span>
+    <span class="pill ok">MIT</span>
+    <span class="pill warm">v2.0.2</span>
+    <span class="pill ok">cosign keyless signature</span>
+    <span class="pill hot">not Authenticode-signed</span>
+  </div>
+
+  <img class="shot" src="img/obliteratus.png" alt="OBLITERATUS local dashboard">
+
+  <p class="lede">
+    OBLITERATUS answers one question — <em>would Mimikatz work against this host?</em> —
+    and answers it with evidence: registry state, token privileges, service configuration
+    and browser store exposure, each mapped to the exact Mimikatz module and MITRE ATT&amp;CK
+    technique it corresponds to.
+  </p>
+
+  <p>
+    It ships as a single binary with two modes. The headless audit is safe to run in CI and
+    exits non-zero when a CRITICAL or HIGH control is failing. The dashboard is a local
+    console on <code>127.0.0.1</code> with a per-run 256-bit token.
+  </p>
+
+  <div class="tw">
+    <table>
+      <caption>Two modes, one binary</caption>
+      <thead><tr><th>Mode</th><th>Command</th><th>Audience</th></tr></thead>
+      <tbody>
+        <tr><td>Headless audit</td><td class="rt">obliteratus.exe --audit</td><td>CI, scripted hardening reviews, blue-team baselines</td></tr>
+        <tr><td>Local dashboard</td><td class="rt">obliteratus.exe</td><td>Operators who want the interactive console on loopback</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <strong>Every offensive capability is compiled in but locked.</strong>
+    A locked route answers <code>403</code> and names the flag that would unlock it, until the
+    operator passes that flag explicitly. Unlocking prints a
+    <code>[!] ... UNLOCKED</code> banner at startup — the effect is never silent.
+    The full route-by-route gate is in <a href="capabilities.html">Capabilities</a>.
+  </div>
+
+  <h2 id="download">Download</h2>
+
+  <p id="dl-status" class="note">
+    Pinned list for v2.0.2. With JavaScript available this is replaced by the live
+    release from the GitHub API.
+  </p>
+
+  <div id="dl-live"></div>
+
+  <div id="dl-fallback">
+    <div class="tw">
+      <table>
+        <caption>v2.0.2 &mdash; SHA-256 as published in <code>checksums.txt</code></caption>
+        <thead><tr><th>File</th><th>Size</th><th>SHA-256</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><a href="https://github.com/DevCop95/pullgoscript/releases/download/v2.0.2/obliteratus_2.0.2_windows_amd64.zip">obliteratus_2.0.2_windows_amd64.zip</a></td>
+            <td>5.8 MiB</td>
+            <td class="hash">90b2e6e5794ed17892ccded42df81ea74840ca40b50370bd9fc7e117d9cff3c8</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/DevCop95/pullgoscript/releases/download/v2.0.2/obliteratus_2.0.2_windows_arm64.zip">obliteratus_2.0.2_windows_arm64.zip</a></td>
+            <td>5.4 MiB</td>
+            <td class="hash">ae47be1d2bbce867b6e5f08de35be2e3d90649ffa8bf9c7bdecc1930cb077160</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/DevCop95/pullgoscript/releases/download/v2.0.2/checksums.txt">checksums.txt</a></td>
+            <td>428 B</td>
+            <td class="hash">&mdash;</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/DevCop95/pullgoscript/releases/download/v2.0.2/checksums.txt.sig">checksums.txt.sig</a> &middot; <a href="https://github.com/DevCop95/pullgoscript/releases/download/v2.0.2/checksums.txt.pem">checksums.txt.pem</a></td>
+            <td>&mdash;</td>
+            <td class="hash">cosign keyless signature + certificate</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">
+      <a href="https://github.com/DevCop95/pullgoscript/releases">All releases on GitHub &rarr;</a>
+    </p>
+  </div>
+
+  <p>Each archive contains <code>obliteratus.exe</code>, <code>oblpack.exe</code>, the README, SECURITY.md and the license.</p>
+
+  <h3>Verify before you run</h3>
+
+  <ol class="steps">
+    <li>
+      <strong>Integrity.</strong>
+      <pre><code>sha256sum -c checksums.txt
+# PowerShell: Get-FileHash -Algorithm SHA256 .\obliteratus_2.0.2_windows_amd64.zip</code></pre>
+    </li>
+    <li>
+      <strong>Provenance.</strong> The checksum file is signed keyless with cosign, bound to the
+      workflow run and logged in the Sigstore transparency log. Pin the identity — a bare
+      <code>Verified OK</code> only says <em>someone</em> signed it:
+      <pre><code>cosign verify-blob \
+  --certificate checksums.txt.pem \
+  --signature   checksums.txt.sig \
+  --certificate-identity-regexp "^https://github.com/DevCop95/pullgoscript/" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  checksums.txt</code></pre>
+    </li>
+    <li>
+      <strong>Dependencies.</strong> An SPDX SBOM ships per archive:
+      <pre><code>syft convert obliteratus_2.0.2_windows_amd64.sbom.json -o table</code></pre>
+    </li>
+  </ol>
+
+  <div class="callout warn">
+    <strong>Windows will still complain, and that is not a build failure.</strong>
+    The <code>.exe</code> files are <em>not</em> Authenticode-signed:
+    <code>Get-AuthenticodeSignature</code> reports <code>NotSigned</code>, SmartScreen shows
+    "Windows protected your PC", and Defender may quarantine on sight of the injection or
+    credential-collection strings. A trusted Authenticode signature needs an EV certificate or
+    an Azure Trusted Signing account — a paid, identity-verified credential this repository
+    cannot hold. Until one exists, the cosign signature is the honest guarantee:
+    <em>this binary came from this repository's release workflow</em>, even though Windows
+    will not validate it natively. Details and the operator/local signing path are in
+    <a href="verify.html">Verify</a>.
+  </div>
+
+  <h2>Build from source</h2>
+
+  <pre><code>git clone https://github.com/DevCop95/pullgoscript
+cd pullgoscript
+go build -o bin\obliteratus.exe .\cmd\obliteratus</code></pre>
+
+  <p class="note">
+    Prefer this to the archives if you want to read the code you are about to run. The
+    toolchain floor is Go 1.26.9 — the standard library ships inside the binary, so an old
+    toolchain is a vulnerable dependency.
+  </p>
+
+  <h2>Where to look next</h2>
+
+  <div class="cardgrid">
+    <a class="card" href="capabilities.html">
+      <h3>Capabilities &amp; gates</h3>
+      <p>All 29 routes: what each one does, the flag that unlocks it, and its MITRE technique.</p>
+    </a>
+    <a class="card" href="audit.html">
+      <h3>Audit checks</h3>
+      <p>The 12 controls, their severity, the Mimikatz module each maps to, and the exit-code contract.</p>
+    </a>
+    <a class="card" href="verify.html">
+      <h3>Verify a release</h3>
+      <p>What the pipeline produces, the exact cosign command, and the Authenticode gap.</p>
+    </a>
+    <a class="card" href="security.html">
+      <h3>Security model</h3>
+      <p>What v1 got wrong, what v2 does instead, and where the trust boundary sits.</p>
+    </a>
+  </div>
+
+  <h2>Authorized use only</h2>
+
+  <p>
+    OBLITERATUS is for authorized security assessment, research and education on systems you
+    own or are contracted to test. The credential-collection, persistence, evasion,
+    lateral-movement and injection modules are deliberately locked; unlocking them is an
+    explicit acknowledgement that your engagement permits their use. Unauthorized access to
+    computer systems is illegal.
+  </p>
+
+  <p class="note">
+    MIT &copy; DevCop95 (Yared Henríquez). Source, issues and releases:
+    <a href="https://github.com/DevCop95/pullgoscript">github.com/DevCop95/pullgoscript</a>.
+  </p>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Assume breach. Audit the credentials before someone else does.</span>
+    <span><a href="https://github.com/DevCop95/pullgoscript/blob/main/LICENSE">MIT</a></span>
+  </div>
+</footer>
+
+<script src="site.js" defer></script>
+</body>
+</html>

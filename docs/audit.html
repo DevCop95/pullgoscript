@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audit checks — OBLITERATUS</title>
+<meta name="description" content="The 12 OBLITERATUS attack-surface controls, their severities, the Mimikatz module and MITRE technique each maps to, and the exit-code contract.">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html">OBLITER<span>ATUS</span></a>
+    <nav class="main">
+      <a href="index.html#download">Download</a>
+      <a href="capabilities.html">Capabilities</a>
+      <a href="audit.html" aria-current="page">Audit checks</a>
+      <a href="verify.html">Verify</a>
+      <a href="security.html">Security model</a>
+      <a href="https://github.com/DevCop95/pullgoscript">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1>The attack-surface audit</h1>
+  <p class="lede">
+    Twelve controls, each one a condition Mimikatz depends on, each carrying a stable ID,
+    a severity, the evidence behind the verdict, a remediation and the exact module it
+    corresponds to. This is the part that runs without any flag — it is read-only and it is
+    the reason the tool exists.
+  </p>
+
+  <pre><code>obliteratus.exe --audit          # human-readable, exit 1 when a CRITICAL/HIGH control fails
+obliteratus.exe --audit --json   # machine-readable
+obliteratus.exe --audit --csv    # spreadsheet</code></pre>
+
+  <div class="callout">
+    <strong>Checks degrade to <code>unknown</code>, never to a false <code>pass</code>.</strong>
+    If a privilege or an asset is missing, the control reports that it could not see, because an
+    audit that guesses is worse than one that admits a gap.
+  </div>
+
+  <h2>The twelve controls</h2>
+
+  <div class="tw">
+    <table>
+      <caption>Verified against a live report on a fully patched Windows 11 host (elevated context).</caption>
+      <thead>
+        <tr>
+          <th>ID</th><th>Control</th><th>Mimikatz</th><th>Technique</th><th>Severity</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="rt">MK-WDIGEST</td>
+          <td>WDigest does not cache plaintext credentials</td>
+          <td class="rt">sekurlsa::wdigest</td>
+          <td class="rt">T1003.001</td>
+          <td class="sev sev-crit">CRITICAL</td>
+        </tr>
+        <tr>
+          <td class="rt">MK-AUTOLOGON-PASS</td>
+          <td>No cleartext password stored in Winlogon</td>
+          <td class="rt">winlogon\DefaultPassword</td>
+          <td class="rt">T1552.001</td>
+          <td class="sev sev-crit">CRITICAL</td>
+        </tr>
+        <tr>
+          <td class="rt">MK-LSASS-PPL</td>
+          <td>LSASS runs as a protected process (PPL)</td>
+          <td class="rt">sekurlsa::logonpasswords</td>
+          <td class="rt">T1003.001</td>
+          <td class="sev sev-high">HIGH</td>
+        </tr>
+        <tr>
+          <td class="rt">MK-CREDGUARD</td>
+          <td>Credential Guard / virtualization-based security enabled</td>
+          <td class="rt">sekurlsa::logonpasswords</td>
+          <td class="rt">T1003.001</td>
+          <td class="sev sev-high">HIGH</td>
+        </tr>
+        <tr>
+          <td class="rt">MK-SEDEBUG</td>
+          <td><code>SeDebugPrivilege</code> not enabled in the current token</td>
+          <td class="rt">privilege::debug</td>
+          <td class="rt">T1134.001</td>
+          <td class="sev sev-high">HIGH</td>
+        </tr>
+        <tr>
+          <td class="rt">MK-AV</td>
+          <td>Endpoint protection installed and enabled</td>
+          <td>&mdash;</td>
+          <td class="rt">T1562.001</td>
+          <td class="sev sev-high">HIGH</td>
+        </tr>
+        <tr>
+          <td class="rt">MK-PSLOG</td>
+          <td>PowerShell Script Block Logging enabled</td>
+          <td>&mdash;</td>
+          <td class="rt">T1059.001</td>
+          <td class="sev sev-med">MEDIUM</td>
+        </tr>
+        <tr>
+          <td class="rt">MK-LAPS</td>
+          <td>Managed local admin password (LAPS) in use</td>
+          <td>&mdash;</td>
+          <td class="rt">T1078.002</td>
+          <td class="sev sev-med">MEDIUM</td>
+        </tr>
+        <tr>
+          <td class="rt">MK-AUTOLOGON</td>
+          <td>Automatic logon disabled</td>
+          <td class="rt">lsadump::secrets</td>
+          <td class="rt">T1003.004</td>
+          <td class="sev sev-med">MEDIUM</td>
+        </tr>
+        <tr>
+          <td class="rt">MK-SYSMON</td>
+          <td>Sysmon or equivalent EDR telemetry installed</td>
+          <td>&mdash;</td>
+          <td>&mdash;</td>
+          <td class="sev sev-low">LOW</td>
+        </tr>
+        <tr>
+          <td class="rt">MK-CACHEDLOGONS</td>
+          <td>Cached domain logon count reviewed</td>
+          <td class="rt">lsadump::cache</td>
+          <td class="rt">T1003.005</td>
+          <td class="sev sev-info">INFO</td>
+        </tr>
+        <tr>
+          <td class="rt">MK-CONTEXT</td>
+          <td>Audit execution context — elevated or not</td>
+          <td>&mdash;</td>
+          <td>&mdash;</td>
+          <td class="sev sev-info">INFO</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Exit-code contract</h2>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Worst severity found</th><th>Exit code</th><th>Meaning for a pipeline</th></tr></thead>
+      <tbody>
+        <tr><td>CRITICAL or HIGH failing</td><td class="rt">1</td><td>Gate the merge / fail the hardening review</td></tr>
+        <tr><td>MEDIUM, LOW, INFO only</td><td class="rt">0</td><td>Report, do not fail</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warn">
+    <strong>Expect exit 1 on a healthy workstation, and read the report before you call it a
+    false alarm.</strong> On a fully patched, fully elevated Windows 11 host the live report shows
+    <code>MK-SEDEBUG</code> failing as HIGH: the token carries
+    <code>SeDebugPrivilege</code> but has not enabled it, and a high-integrity admin token can
+    enable it whenever it wants — which is precisely the point the control is making. The
+    contract is about the worst severity, so that one HIGH is what makes a scripted run exit
+    non-zero.
+  </div>
+
+  <h2>Report shape</h2>
+
+  <p>
+    Findings carry <code>id</code>, <code>title</code>, <code>severity</code>,
+    <code>status</code>, <code>evidence</code>, <code>remediation</code>,
+    <code>technique</code> and <code>module</code>, alongside
+    <code>tool</code>, <code>version</code>, <code>hostname</code>,
+    <code>generated_at</code>, <code>elevated</code>, <code>modules</code> and a
+    <code>summary</code> count per severity. Stable IDs mean you can diff two runs across a
+    remediation window and see exactly which control moved.
+  </p>
+
+  <p class="note">
+    Adding a check is one function plus one line in <code>RunChecks</code> — see
+    <a href="https://github.com/DevCop95/pullgoscript/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>.
+    The <code>audit</code> package never imports <code>server</code>; progress is reported through
+    an <code>Emitter</code> callback so the checks stay unit-testable.
+  </p>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Assume breach. Audit the credentials before someone else does.</span>
+    <span><a href="https://github.com/DevCop95/pullgoscript/blob/main/LICENSE">MIT</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
