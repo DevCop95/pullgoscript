@@ -1,0 +1,31 @@
+version: 2
+
+updates:
+  # Go module graph. Minor and patch bumps are grouped into a single PR so a
+  # routine week produces one reviewable change instead of ten; majors stay
+  # separate because they need a human to look at the diff.
+  #
+  # Security updates are never grouped or rate-limited by Dependabot: they
+  # arrive on their own as soon as the advisory lands.
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      go-minor-patch:
+        update-types: [minor, patch]
+
+  # The workflows themselves: actions/checkout, actions/setup-go and friends
+  # are dependencies too, and a compromised action tag runs with repo access.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore(ci)
+    groups:
+      actions:
+        patterns: ["*"]

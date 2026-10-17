@@ -30,6 +30,22 @@ jobs:
         run: go vet ./...
       - name: test
         run: go test ./...
+      - name: coverage gate
+        shell: bash
+        run: |
+          go test ./... -coverprofile=cover.out -count=1
+          total=$(go tool cover -func=cover.out | awk '/^total:/ {gsub(/%/,"",$3); print $3}')
+          echo "total statement coverage: ${total}%"
+          # Ratchet, not a target. Windows-only packages (collectors, regf,
+          # lsass, winutil) cannot be exercised on the Linux runner, so the
+          # whole-tree number stays modest; this floor exists to stop it going
+          # *down*. Raise it whenever coverage improves — never lower it to
+          # make a red build green.
+          min=35
+          if awk "BEGIN {exit !(${total} < ${min})}"; then
+            echo "::error::coverage ${total}% is below the ${min}% floor"
+            exit 1
+          fi
       - name: build
         run: go build ./...
       - name: headless audit smoke test
@@ -70,3 +86,24 @@ jobs:
         run: go build ./...
       - name: unit tests (platform-neutral packages)
         run: go test ./internal/token ./internal/audit ./internal/ui ./internal/server
+
+  # Reachability-aware vulnerability scanning: govulncheck reports only the
+  # advisories your code can actually reach, so its verdict is actionable
+  # rather than a noisy list of every CVE in the module graph. It exits
+  # non-zero on a finding, which is what gates the merge.
+  #
+  # The Go *toolchain* matters here as much as the dependencies: the standard
+  # library ships in the binary, so an old toolchain is a vulnerable
+  # dependency. go.mod pins a patched floor and this job reads it.
+  security:
+    name: govulncheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - name: govulncheck ./...
+        run: govulncheck ./...

@@ -33,3 +33,10 @@ Thumbs.db
 obj/
 *.o
 *.a
+
+# Go test coverage profile (produced by the CI coverage gate)
+cover.out
+
+# goreleaser output (local --snapshot builds; the CI release uploads these
+# to the GitHub Release instead of the tree)
+dist/
