@@ -65,7 +65,7 @@ Prebuilt binaries are attached to each [tagged release][releases] (checksums +
 SPDX SBOM, keyless-signed with cosign). How to verify them — and why the `.exe`
 is **not** Authenticode-signed — is in **[docs/SIGNING.md](docs/SIGNING.md)**.
 
-[releases]: https://github.com/DevCop95/obliteratus/releases
+[releases]: https://github.com/DevCop95/pullgoscript/releases
 
 ### Full flag reference
 

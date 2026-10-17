@@ -1,0 +1,57 @@
+name: Feature request
+description: A new check, module, or improvement to the audit or console.
+title: "[feat] "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      options:
+        - label: I have read CONTRIBUTING.md, including the check design rules (locale/privilege independence, no side effects, no false passes).
+          required: true
+        - label: I agree to follow this project's Code of Conduct.
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: The exposure this measures
+      description: |
+        What Windows misconfiguration or gap should this surface, and from whose
+        point of view? A check is only useful if it can answer "so what".
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed approach
+      description: API or registry key to read, expected severity, and the concrete remediation the Finding would recommend.
+    validations:
+      required: true
+  - type: input
+    id: technique
+    attributes:
+      label: MITRE ATT&CK technique (if any)
+      placeholder: T1552.001
+    validations:
+      required: false
+  - type: textarea
+    id: falsifiability
+    attributes:
+      label: How could this check be wrong?
+      description: |
+        What would make it report a false PASS, and how do we detect that
+        instead of guessing? Checks that cannot observe must return Unknown.
+    validations:
+      required: true
+  - type: dropdown
+    id: offensive
+    attributes:
+      label: Does it need a state-changing or offensive capability?
+      description: Anything that mutates the host or touches credentials must sit behind a --enable-* flag.
+      options:
+        - "No — read-only, fits the audit"
+        - "Yes — new or existing --enable-* module"
+        - "Not sure"
+    validations:
+      required: true

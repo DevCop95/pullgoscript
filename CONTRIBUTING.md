@@ -15,8 +15,39 @@ make test    # gofmt check + go vet + go test ./...
 make build   # windows/amd64 → bin/obliteratus.exe
 ```
 
-CI runs the same gates on every PR (`gofmt`, `go vet`, `go test`, cross
-compile), so a green local `make test` means a green PR.
+CI runs the same gates on every PR — `gofmt`, `vet + test (windows)` (with a
+coverage floor), `cross-compile (linux → windows)`, `govulncheck`, `gosec
+(static analysis)` and `fuzz smoke (parsers)` — so a green local run means a
+green PR.
+
+## Testing and tooling
+
+Every gate below runs in CI; run them locally before pushing. `make sast`,
+`make fuzz-check` and `make cover` wrap the three you cannot get from
+`go test ./...` alone — if you do not have `make` installed (it is not needed to
+build the project), run the underlying commands straight out of the `Makefile`.
+
+- **Tests** — `go test ./...`. The coverage gate is a ratchet: if your change
+  raises coverage, raise `min` in `.github/workflows/ci.yml` in the same commit.
+  Never lower it to make a build green. `make cover` prints the total.
+- **Fuzzing** — the parsers that eat attacker-influenced input have fuzz targets
+  (`FuzzRegf`, `FuzzParseRep`, `FuzzUnpack`, `FuzzMaskRoundTrip`,
+  `FuzzSanitizeName`). Seeds run as ordinary tests; to actually fuzz one:
+
+  ```bash
+  go test -run='^$' -fuzz=FuzzRegf -fuzztime=60s ./internal/audit
+  ```
+
+  A crasher is written to `testdata/fuzz/<Target>/` — commit it as a
+  regression seed and fix the bug.
+- **Static analysis** — `gosec -exclude=G103,G104 ./...` must report zero
+  findings. If a finding is a false positive, do not add a rule to the exclude
+  list: annotate the line instead, with the reason, as
+  `//#nosec G304 -- <why this path cannot be attacker-controlled>`. The exclude
+  list is for rules whose *every* instance is deliberate, and each entry there
+  is justified in a comment.
+- **Vulnerabilities** — `govulncheck ./...` must be clean. It is
+  reachability-aware, so a finding means your code calls the vulnerable symbol.
 
 ## Adding an audit check
 
@@ -60,4 +91,5 @@ Conventional Commits: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`,
 ## Reporting bugs
 
 Use GitHub issues for reproducible defects. Security-sensitive reports go
-through [SECURITY.md](SECURITY.md), not the public tracker.
+through [SECURITY.md](SECURITY.md), not the public tracker. Participation in
+this project is covered by the [Code of Conduct](CODE_OF_CONDUCT.md).

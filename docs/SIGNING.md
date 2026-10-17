@@ -34,7 +34,7 @@ sha256sum -c checksums.txt   # or:  Get-FileHash -Algorithm SHA256 .\*.zip
 cosign verify-blob \
   --certificate checksums.txt.pem \
   --signature   checksums.txt.sig \
-  --certificate-identity-regexp "^https://github.com/DevCop95/obliteratus/" \
+  --certificate-identity-regexp "^https://github.com/DevCop95/pullgoscript/" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   checksums.txt
 # → "Verified OK"
@@ -44,8 +44,26 @@ rekor-cli get --artifact checksums.txt
 ```
 
 `--certificate-identity-regexp` is the crux: a bare `Verified OK` only says
-*someone* signed it. Pinning the identity to `DevCop95/obliteratus` is what
+*someone* signed it. Pinning the identity to `DevCop95/pullgoscript` is what
 stops a signature from any other repository being accepted.
+
+The certificate subject is fully qualified, e.g. for v2.0.2:
+
+```
+https://github.com/DevCop95/pullgoscript/.github/workflows/release.yml@refs/tags/v2.0.2
+```
+
+Use `--certificate-identity` (singular, exact match) instead of the regexp if
+you want to pin one specific tag and workflow rather than the repository. Note
+that the subject embeds the **repository name at the time of the release**, so a
+later rename invalidates an exact pin — which is why `release.yml` builds its
+self-check from `${GITHUB_REPOSITORY}` and this document uses the repo-prefix
+regexp.
+
+> cosign v3 prints `Flag --certificate has been deprecated...` for the two flags
+> above. That is expected for these assets: the release ships the detached
+> `.sig` + `.pem` pair, and the warning is about the newer single-file
+> `--bundle` form. The verification result is unaffected.
 
 Reviewing the SBOM:
 
@@ -92,30 +110,57 @@ moment the certificate expires.
 
 ### Wiring a cert into the release workflow later
 
-When an EV cert or Azure Trusted Signing is available, add a `signs` entry to
-`.goreleaser.yml` that runs **after** the build and **before** archiving, so
-the signed bytes are what lands in the zip and its checksum. Sketch
-(non-functional until the cert exists):
+This is the **only** outstanding gap in the supply chain, and it is blocked on a
+credential this repository cannot hold: an EV code-signing certificate or an
+Azure Trusted Signing account — a paid, identity-verified asset. Nothing in the
+tree can be changed to close it until such a cert exists.
+
+When it does, add a `signs` entry to `.goreleaser.yml` that runs **after** the
+build and **before** archiving, so the signed bytes are what lands in the zip
+and its checksum. Sketch (non-functional until the cert exists):
 
 ```yaml
 signs:
   - id: authenticode
     cmd: signtool
     artifacts: binary           # sign the .exe, not the archive
-    signature: "${artifact}"
+    signature: "${artifact}"    # sign in place: the archive must carry the signed bytes
     args:
       - sign
-      - /fd            # /fd SHA256
-      - /tr http://timestamp.digicert.com /td SHA256
-      - /n "Your Company Name"
+      - /fd
+      - SHA256                  # file digest
+      - /tr
+      - http://timestamp.digicert.com
+      - /td
+      - SHA256                  # timestamp digest — omitting this kills the sig at expiry
+      - /n
+      - "Your Company Name"
       - "${artifact}"
 ```
 
-The cert/credential must be injected as a GitHub secret (base64 PFX imported
-into the runner's store, or an Azure Trusted Signing OIDC login) — it must
-never be committed. Note that signing the binaries changes their hashes, so the
+`signtool` is not on `PATH` on a plain runner — it ships with the Windows SDK,
+so a `windows-latest` job needs the SDK step (or `azure/trusted-signing-action`)
+before goreleaser runs. The certificate/credential must be injected as a GitHub
+secret (a base64 PFX imported into the runner's store, or an Azure federated
+login) — it must never be committed. Signing changes the bytes, so the
 Authenticode step has to precede both the archive and `checksums.txt`; that is
 why it lives in the `signs` pipe rather than as a post-release `signtool` job.
+
+**Azure Trusted Signing** is the lower-friction route in 2026: Microsoft runs
+the CA, the signing key never leaves their HSM, and identity validation is done
+once by Microsoft. Use `az login` with a federated credential from Actions, then
+point goreleaser's `signs.command` at `trusted-signing-cli` (`sign` mode)
+instead of `signtool`. Either way the release must be re-tagged: existing tags
+are immutable and their signatures are already published, so the first signed
+release is a new version.
+
+### Status tracking
+
+| Step | State |
+|---|---|
+| cosign keyless signature over `checksums.txt` | ✅ live (v2.0.2 verified) |
+| SBOM per archive | ✅ live |
+| Authenticode on the `.exe` files | ⛔ **blocked on acquiring a certificate** |
 
 ## Threat-model note
 
