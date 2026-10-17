@@ -20,9 +20,9 @@ package krb
 
 import (
 	"crypto/hmac"
-	"crypto/md5"
+	"crypto/md5" //#nosec G501 -- MD4/MD5 chain mandated by MS-NLMP / RC4-HMAC (RFC 4757); the protocol fixes the primitive
 	"crypto/rand"
-	"crypto/rc4"
+	"crypto/rc4" //#nosec G503 -- RC4-HMAC is the etype-23 cipher the KDC speaks; interoperability requires it
 	"encoding/asn1"
 	"encoding/binary"
 	"encoding/hex"
@@ -177,7 +177,7 @@ func rc4Encrypt(key []byte, usage uint32, plain []byte) []byte {
 	chk := hmacMD5(k1, payload)
 	k3 := hmacMD5(k1, chk)
 
-	c, _ := rc4.NewCipher(k3)
+	c, _ := rc4.NewCipher(k3) //#nosec G405 -- RC4-HMAC (etype 23) per RFC 4757
 	ct := make([]byte, len(payload))
 	c.XORKeyStream(ct, payload)
 	return append(chk, ct...)
@@ -194,7 +194,7 @@ func rc4Decrypt(key []byte, usage uint32, blob []byte) ([]byte, bool) {
 	binary.LittleEndian.PutUint32(u[:], usage)
 	k1 := hmacMD5(key, u[:])
 	k3 := hmacMD5(k1, chk)
-	c, _ := rc4.NewCipher(k3)
+	c, _ := rc4.NewCipher(k3) //#nosec G405 -- RC4-HMAC (etype 23) per RFC 4757
 	pt := make([]byte, len(ct))
 	c.XORKeyStream(pt, ct)
 	if !hmac.Equal(chk, hmacMD5(k1, pt)) {
@@ -219,11 +219,11 @@ func rc4Checksum(key []byte, usage uint32, text []byte) []byte {
 func derLen(n int) []byte {
 	switch {
 	case n < 0x80:
-		return []byte{byte(n)}
+		return []byte{byte(n)} //#nosec G115 -- DER short-form length: n < 0x80 by the case above
 	case n < 0x100:
 		return []byte{0x81, byte(n)}
 	default:
-		return []byte{0x82, byte(n >> 8), byte(n)}
+		return []byte{0x82, byte(n >> 8), byte(n)} //#nosec G115 -- DER long-form length: emits the two length bytes we already bounded
 	}
 }
 
@@ -235,10 +235,10 @@ func der(tag byte, content []byte) []byte {
 }
 
 // ctx wraps content in a context-specific constructed tag [n].
-func ctx(n int, content []byte) []byte { return der(byte(0xA0|n), content) }
+func ctx(n int, content []byte) []byte { return der(byte(0xA0|n), content) } //#nosec G115 -- tag numbers are small constants
 
 // app wraps content in an APPLICATION constructed tag [n].
-func app(n int, content []byte) []byte { return der(byte(0x60+n), content) }
+func app(n int, content []byte) []byte { return der(byte(0x60+n), content) } //#nosec G115 -- tag numbers are small constants
 
 func derSeq(parts ...[]byte) []byte {
 	var buf []byte
@@ -253,9 +253,9 @@ func derInt(i int64) []byte {
 	if i == 0 {
 		b = []byte{0}
 	} else {
-		u := uint64(i)
+		u := uint64(i) //#nosec G115 -- DER INTEGER is two's complement; the cast is intentional (see the i < 0 case)
 		if i < 0 {
-			u = uint64(i) // two's complement via int64 → uint64 cast
+			u = uint64(i) //#nosec G115 -- two's complement via int64 → uint64 cast (intentional)
 		}
 		b = make([]byte, 0, 8)
 		for u != 0 {
@@ -639,7 +639,7 @@ func exchangeTCP(kdc string, req []byte) ([]byte, error) {
 	defer conn.Close()
 	_ = conn.SetDeadline(time.Now().Add(15 * time.Second))
 	msg := make([]byte, 4+len(req))
-	binary.BigEndian.PutUint32(msg[:4], uint32(len(req)))
+	binary.BigEndian.PutUint32(msg[:4], uint32(len(req))) //#nosec G115 -- KDC request length prefix; requests are built in memory, far below 4 GiB
 	copy(msg[4:], req)
 	if _, err := conn.Write(msg); err != nil {
 		return nil, err
@@ -691,7 +691,7 @@ func errText(code int64) string {
 func nonce() uint32 {
 	var b [4]byte
 	if _, err := rand.Read(b[:]); err != nil {
-		return uint32(time.Now().UnixNano())
+		return uint32(time.Now().UnixNano()) //#nosec G115 -- fallback nonce: the low 32 bits are the nonce, per RFC 4120
 	}
 	return binary.BigEndian.Uint32(b[:])
 }

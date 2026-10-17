@@ -13,6 +13,8 @@ import "os"
 // non-Windows build the old stub returned nil, so the endpoint answered
 // "dump wiped" while the file was still on disk.
 func WipeFile(path string) error {
+	//#nosec G304 -- the only caller confines path to an obl-lsass-*.dmp file
+	// directly inside the temp dir before calling; see the doc comment above.
 	if f, err := os.OpenFile(path, os.O_WRONLY, 0); err == nil {
 		_ = f.Truncate(0)
 		_ = f.Close()

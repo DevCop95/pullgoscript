@@ -1,0 +1,79 @@
+name: Bug report
+description: A reproducible defect in the audit, the console or a build artifact.
+title: "[bug] "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > **Not for vulnerabilities.** If you found a flaw in OBLITERATUS
+        > itself (auth, token handling, injection, audit correctness), use
+        > [private vulnerability reporting](https://github.com/DevCop95/pullgoscript/security/advisories/new)
+        > instead — see [SECURITY.md](https://github.com/DevCop95/pullgoscript/blob/main/SECURITY.md).
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      options:
+        - label: I am reporting a bug, not a security vulnerability, and not "my AV flagged this" (that is expected — see docs/SIGNING.md).
+          required: true
+        - label: I agree to follow this project's Code of Conduct.
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      description: Output of `obliteratus.exe --version`, or the commit hash if built from source.
+      placeholder: "2.0.2"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: The observed behaviour, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      description: Exact commands or dashboard actions. Redact tokens and host names.
+      placeholder: |
+        1. obliteratus.exe --audit --json
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows build
+      description: e.g. Windows 11 24H2 (26100.2033), or the Server SKU and build.
+    validations:
+      required: true
+  - type: dropdown
+    id: admin
+    attributes:
+      label: Was the process elevated?
+      options:
+        - "Yes (Administrator / SYSTEM)"
+        - "No (standard user token)"
+        - "Not sure"
+    validations:
+      required: true
+  - type: textarea
+    id: flags
+    attributes:
+      label: Flags used
+      description: Which `--enable-*` modules were active, if any.
+      placeholder: "--enable-collect --enable-inject"
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / JSON output
+      description: Relevant output. **Never paste an API token or a recovered credential.**
+      render: text
+    validations:
+      required: false

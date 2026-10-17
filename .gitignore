@@ -37,6 +37,9 @@ obj/
 # Go test coverage profile (produced by the CI coverage gate)
 cover.out
 
+# gosec JSON report from a local `gosec -fmt=json -out=gosec.json ./...`
+gosec.json
+
 # goreleaser output (local --snapshot builds; the CI release uploads these
 # to the GitHub Release instead of the tree)
 dist/

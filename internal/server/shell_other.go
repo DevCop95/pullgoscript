@@ -8,5 +8,5 @@ import "os/exec"
 // (the dashboard itself only runs on Windows; this keeps the package buildable
 // for CI on Linux).
 func runShell(command string) ([]byte, error) {
-	return exec.Command("sh", "-c", command).CombinedOutput()
+	return exec.Command("sh", "-c", command).CombinedOutput() //#nosec G204 -- by design: mirrors the Windows runShell operator console (see SECURITY.md)
 }

@@ -36,12 +36,13 @@ jobs:
           go test ./... -coverprofile=cover.out -count=1
           total=$(go tool cover -func=cover.out | awk '/^total:/ {gsub(/%/,"",$3); print $3}')
           echo "total statement coverage: ${total}%"
-          # Ratchet, not a target. Windows-only packages (collectors, regf,
-          # lsass, winutil) cannot be exercised on the Linux runner, so the
-          # whole-tree number stays modest; this floor exists to stop it going
-          # *down*. Raise it whenever coverage improves — never lower it to
-          # make a red build green.
-          min=35
+          # Ratchet, not a target. The remainder is code that needs something
+          # this runner does not have: a SYSTEM/browser-user token (the DPAPI
+          # and app-bound-key collection backends), a live LSASS, a real Chrome
+          # or Edge profile, a spawning schtasks.exe / powershell.exe, or a
+          # domain to talk to. This floor exists to stop coverage going *down*
+          # — raise it whenever it improves, never lower it to green a build.
+          min=42
           if awk "BEGIN {exit !(${total} < ${min})}"; then
             echo "::error::coverage ${total}% is below the ${min}% floor"
             exit 1
@@ -86,6 +87,100 @@ jobs:
         run: go build ./...
       - name: unit tests (platform-neutral packages)
         run: go test ./internal/token ./internal/audit ./internal/ui ./internal/server
+
+  # Fuzzing on every push/PR. The packages exercised here eat untrusted input —
+  # registry hives, KDC replies, payload envelopes — inside a process that holds
+  # an elevated token, so a panic is a real availability bug, not a test
+  # artefact. Runs are short and bounded: this is a smoke gate, not a soak. Any
+  # crasher is written to testdata/fuzz/ and fails the job.
+  #
+  # One target per invocation: `go test -fuzz` matches a single target.
+  fuzz-smoke:
+    name: fuzz smoke (parsers)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: fuzz regf hive parser
+        run: go test -run='^$' -fuzz=FuzzRegf -fuzztime=30s ./internal/audit
+      - name: fuzz krb response parser
+        run: go test -run='^$' -fuzz=FuzzParseRep -fuzztime=30s ./internal/krb
+      - name: fuzz payload envelope
+        run: go test -run='^$' -fuzz=FuzzUnpack -fuzztime=30s ./internal/research
+      - name: fuzz obfuscator round-trip
+        run: go test -run='^$' -fuzz=FuzzMaskRoundTrip -fuzztime=30s ./internal/obfuscate
+      - name: fuzz persist name sanitizer
+        run: go test -run='^$' -fuzz=FuzzSanitizeName -fuzztime=30s ./internal/persist
+
+  # Static analysis (gosec) of exactly the code that ships. GOOS is pinned to
+  # windows even though the runner is Linux, because the entire
+  # security-sensitive surface lives in the windows-only packages; on linux the
+  # scan would silently see a third of the tree.
+  #
+  # The scan runs at full strength bar two rules excluded on the command line,
+  # each because every instance is deliberate and re-reviewing adds no signal:
+  #   * G103 (use of unsafe)    — the tool *is* an unsafe.Pointer/syscall
+  #                               bridge; 37 sites, all hand-reviewed.
+  #   * G104 (unhandled error)  — 14 sites, every one a cleanup path (deferred
+  #                               Close on a handle we are finished with).
+  # Every other finding was either fixed (file modes 0755/0644 -> 0700/0600) or
+  # suppressed inline as `//#nosec <rule> -- <reason>`, so the reason travels
+  # with the code: 47 suppressions, mostly protocol-mandated weak crypto
+  # (DES/RC4/MD4 per MS-SAMR, MS-NLMP, RFC 4757) and width narrowing in the
+  # binary parsers. `gosec ./...` without -exclude lists them all.
+  #
+  # Known blind spot: go/types cannot type-check a bodyless function, so gosec
+  # fails to build SSA for internal/research (EnergyFlow is implemented in
+  # energyflow_amd64.s) and the taint rules skip that one package. The job
+  # asserts that this is the *only* tolerated error — a new type error would
+  # likewise disable analysis silently, so it fails the build too.
+  sast:
+    name: gosec (static analysis)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      # Installed with the *runner's* GOOS. Setting GOOS=windows here would make
+      # this step cross-compile gosec to a PE binary (gosec.exe) that the Linux
+      # runner cannot execute; it is scoped to the scan step below instead.
+      - name: install gosec
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+      - name: gosec
+        env:
+          GOOS: windows
+          GOARCH: amd64
+        run: |
+          # setup-go does not put $(go env GOPATH)/bin on PATH, so resolve the
+          # binary explicitly rather than relying on `gosec` being found.
+          GOSEC="$(go env GOPATH)/bin/gosec"
+          # -no-fail: gosec exits non-zero on the tolerated assembly type error
+          # even with no findings; the gates below decide pass/fail instead.
+          "$GOSEC" -no-fail -fmt=json -exclude=G103,G104 ./... > gosec.json
+          # A scan that parsed nothing must not read as a clean scan.
+          files=$(jq '.Stats.files' gosec.json)
+          if [ "${files:-0}" -eq 0 ]; then
+            echo "::error::gosec analysed 0 files — the scan is vacuous, not clean"
+            exit 1
+          fi
+          jq -r '"gosec stats: files=\(.Stats.files) lines=\(.Stats.lines) nosec=\(.Stats.nosec) found=\(.Stats.found)"' gosec.json
+          issues=$(jq '.Issues | length' gosec.json)
+          if [ "$issues" -ne 0 ]; then
+            jq -r '.Issues[] | "::error file=\(.file),line=\(.line)::\(.rule_id) \(.details)"' gosec.json
+            echo "::error::gosec reported ${issues} finding(s)"
+            exit 1
+          fi
+          if jq -r '."Golang errors"[]?[]?.error' gosec.json \
+               | grep -v '^# command-line-arguments$' \
+               | grep -qv 'missing function body'; then
+            echo "::error::unexpected gosec type error — a package was not fully analysed"
+            jq -r '."Golang errors"[]?[]?.error' gosec.json
+            exit 1
+          fi
+          echo "gosec: no findings"
 
   # Reachability-aware vulnerability scanning: govulncheck reports only the
   # advisories your code can actually reach, so its verdict is actionable

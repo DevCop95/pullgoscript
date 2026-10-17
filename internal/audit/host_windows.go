@@ -67,7 +67,7 @@ func regDWORD(root registry.Key, path, name string) (uint32, bool, error) {
 		}
 		return 0, false, err
 	}
-	return uint32(v), true, nil
+	return uint32(v), true, nil //#nosec G115 -- REG_DWORD is 32-bit by definition; values above 4 GiB cannot occur
 }
 
 // regSZ returns (value, present, error).

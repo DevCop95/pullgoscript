@@ -1,0 +1,13 @@
+blank_issues_enabled: false
+contact_links:
+  # A security tool gets drive-by "this looks like malware" issues and, worse,
+  # vulnerability reports filed publicly. Both have a better home.
+  - name: Report a vulnerability (private)
+    url: https://github.com/DevCop95/pullgoscript/security/advisories/new
+    about: Do not open a public issue for a flaw in OBLITERATUS itself. Use private vulnerability reporting.
+  - name: '"My AV flagged this" / Defender detections'
+    url: https://github.com/DevCop95/pullgoscript/blob/main/docs/SIGNING.md
+    about: Expected for an unsigned offensive tool — read the signing and verification doc before filing.
+  - name: Audit, flags and module reference
+    url: https://github.com/DevCop95/pullgoscript#readme
+    about: How the audit works, what each --enable-* flag unlocks, and the console's threat model.

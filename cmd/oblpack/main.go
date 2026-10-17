@@ -42,7 +42,7 @@ func main() {
 	if outPath == "" {
 		outPath = *in + ".packed"
 	}
-	if err := os.WriteFile(outPath, packed, 0o600); err != nil {
+	if err := os.WriteFile(outPath, packed, 0o600); err != nil { //#nosec G703 -- outPath is the operator's own -o argument on their own machine; this tool has no privilege boundary
 		fatalf("write %s: %v", outPath, err)
 	}
 	fmt.Printf("packed %s (%d B) -> %s (%d B)\n", *in, len(plain), outPath, len(packed))
