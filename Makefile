@@ -46,6 +46,10 @@ fuzz-check:
 	go test -run='^$$' -fuzz=FuzzUnpack -fuzztime=20s ./internal/research
 	go test -run='^$$' -fuzz=FuzzMaskRoundTrip -fuzztime=20s ./internal/obfuscate
 	go test -run='^$$' -fuzz=FuzzSanitizeName -fuzztime=20s ./internal/persist
+	go test -run='^$$' -fuzz=FuzzValidHost -fuzztime=15s ./internal/server
+	go test -run='^$$' -fuzz=FuzzAllowedOrigin -fuzztime=15s ./internal/server
+	go test -run='^$$' -fuzz=FuzzRoutesRejectBadToken -fuzztime=15s ./internal/server
+	go test -run='^$$' -fuzz=FuzzEqual -fuzztime=15s ./internal/token
 
 # Whole-tree statement coverage; CI fails below its ratcheting floor.
 cover:

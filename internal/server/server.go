@@ -123,6 +123,11 @@ func portOf(addr, fallback string) string {
 // routes registers every endpoint. Method patterns ("POST /path") make the
 // ServeMux answer 405 automatically for wrong verbs — no handler ever has to
 // remember to check.
+//
+// Every API route must be wrapped in s.guard(...). That rule is not enforced
+// here but it is enforced by TestGuardedRoutesRejectBadToken, which drives the
+// table in fuzz_test.go; adding a pattern to this function means adding it
+// there, and a route registered without a guard fails the test.
 func (s *Server) routes() {
 	// --- pages (host-checked; token travels inside the page) ---------------
 	s.mux.HandleFunc("GET /{$}", s.guardPage(s.handleIndex))

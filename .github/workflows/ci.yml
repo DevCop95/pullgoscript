@@ -42,7 +42,7 @@ jobs:
           # or Edge profile, a spawning schtasks.exe / powershell.exe, or a
           # domain to talk to. This floor exists to stop coverage going *down*
           # — raise it whenever it improves, never lower it to green a build.
-          min=42
+          min=43
           if awk "BEGIN {exit !(${total} < ${min})}"; then
             echo "::error::coverage ${total}% is below the ${min}% floor"
             exit 1
@@ -88,11 +88,17 @@ jobs:
       - name: unit tests (platform-neutral packages)
         run: go test ./internal/token ./internal/audit ./internal/ui ./internal/server
 
-  # Fuzzing on every push/PR. The packages exercised here eat untrusted input —
-  # registry hives, KDC replies, payload envelopes — inside a process that holds
-  # an elevated token, so a panic is a real availability bug, not a test
-  # artefact. Runs are short and bounded: this is a smoke gate, not a soak. Any
-  # crasher is written to testdata/fuzz/ and fails the job.
+  # Fuzzing on every push/PR. Two groups of targets:
+  #   * the module parsers — registry hives, KDC replies, payload envelopes —
+  #     which read bytes this tool did not author;
+  #   * the console's own guard: the Host allow-list (DNS rebinding), the
+  #     WebSocket Origin parser and the route policy (never reaches a handler
+  #     without the run token; its inputs cannot match the token by
+  #     construction, so it only ever exercises refusals).
+  # A panic in the first group is an availability bug in a process holding an
+  # elevated token; a hole in the second exposes every module at once. Runs are
+  # short and bounded: this is a smoke gate, not a soak. Any crasher is written
+  # to testdata/fuzz/ and fails the job.
   #
   # One target per invocation: `go test -fuzz` matches a single target.
   fuzz-smoke:
@@ -113,6 +119,16 @@ jobs:
         run: go test -run='^$' -fuzz=FuzzMaskRoundTrip -fuzztime=30s ./internal/obfuscate
       - name: fuzz persist name sanitizer
         run: go test -run='^$' -fuzz=FuzzSanitizeName -fuzztime=30s ./internal/persist
+      # The console targets are cheaper per execution and carry hostile seeds,
+      # so they get a shorter budget than the parsers.
+      - name: fuzz host allow-list
+        run: go test -run='^$' -fuzz=FuzzValidHost -fuzztime=20s ./internal/server
+      - name: fuzz ws origin guard
+        run: go test -run='^$' -fuzz=FuzzAllowedOrigin -fuzztime=20s ./internal/server
+      - name: fuzz route policy
+        run: go test -run='^$' -fuzz=FuzzRoutesRejectBadToken -fuzztime=20s ./internal/server
+      - name: fuzz token comparison
+        run: go test -run='^$' -fuzz=FuzzEqual -fuzztime=20s ./internal/token
 
   # Static analysis (gosec) of exactly the code that ships. GOOS is pinned to
   # windows even though the runner is Linux, because the entire
