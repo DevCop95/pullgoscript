@@ -13,8 +13,10 @@ import (
 
 const testToken = "test-token-0123456789abcdef"
 
-func newTestServer(t *testing.T, cfg Config) *Server {
-	t.Helper()
+// newTestServer builds a server around the shared test token. It takes
+// testing.TB so fuzz targets (*testing.F) can use it too.
+func newTestServer(tb testing.TB, cfg Config) *Server {
+	tb.Helper()
 	cfg.Token = testToken
 	if cfg.Version == "" {
 		cfg.Version = "test"

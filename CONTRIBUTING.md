@@ -32,7 +32,9 @@ build the project), run the underlying commands straight out of the `Makefile`.
   Never lower it to make a build green. `make cover` prints the total.
 - **Fuzzing** — the parsers that eat attacker-influenced input have fuzz targets
   (`FuzzRegf`, `FuzzParseRep`, `FuzzUnpack`, `FuzzMaskRoundTrip`,
-  `FuzzSanitizeName`). Seeds run as ordinary tests; to actually fuzz one:
+  `FuzzSanitizeName`), as does the console's own guard (`FuzzValidHost`,
+  `FuzzAllowedOrigin`, `FuzzRoutesRejectBadToken`, `FuzzEqual`). Seeds run as
+  ordinary tests; to actually fuzz one:
 
   ```bash
   go test -run='^$' -fuzz=FuzzRegf -fuzztime=60s ./internal/audit

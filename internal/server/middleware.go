@@ -19,13 +19,49 @@ var loopbackHosts = map[string]bool{
 }
 
 // validHost reports whether the request targeted a loopback Host header.
+//
+// Strictness matters more than permissiveness here: this is the control that
+// stops a DNS-rebinding page (`Host: attacker.example` resolving to 127.0.0.1)
+// from reading the token out of the dashboard. Anything that is not a bare
+// loopback host, a loopback host with a numeric port, or a bracketed IPv6
+// loopback with a numeric port is refused.
+//
+// Note that net.SplitHostPort validates the *shape* of an address, not its
+// contents: it happily returns host "127.0.0.1" and port "8080/evil" for
+// "127.0.0.1:8080/evil". Trusting it would accept host strings no parser ever
+// meant to hand us, so the port is checked explicitly. The stdlib HTTP server
+// rejects such a Host header before it reaches a handler, which is why this is
+// hardening rather than a live bypass — but a guard should mean what it says.
 func validHost(hostport string) bool {
 	host := hostport
-	if h, _, err := net.SplitHostPort(hostport); err == nil {
+	if h, p, err := net.SplitHostPort(hostport); err == nil {
+		if !isPort(p) {
+			return false
+		}
 		host = h
+	} else if strings.ContainsAny(hostport, ":[]") {
+		// A port separator or bracket we could not parse: refuse instead of
+		// guessing which parser the caller intended.
+		return false
 	}
 	host = strings.TrimSuffix(strings.ToLower(host), ".")
+	if host == "" {
+		return false
+	}
 	return loopbackHosts[host]
+}
+
+// isPort reports whether p is a non-empty run of ASCII digits.
+func isPort(p string) bool {
+	if p == "" {
+		return false
+	}
+	for i := 0; i < len(p); i++ {
+		if p[i] < '0' || p[i] > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 // guard is the API middleware: loopback Host + constant-time token check.
@@ -87,6 +123,14 @@ func setSecurityHeaders(w http.ResponseWriter, connectSrc string) {
 // Browsers always attach Origin to cross-origin WS requests, so a page on
 // evil.com cannot complete the handshake even if it somehow knew the token
 // (it still needs the token too — both checks must pass).
+//
+// The check is deliberately stricter than "url.Parse succeeded and the host
+// looks loopback". Go's url.Parse puts the *userinfo* in u.User and the host in
+// u.Host, so "http://evil.com@127.0.0.1" parses with u.Host == "127.0.0.1" and
+// would read as loopback. A browser never sends userinfo in Origin, which is
+// why this was not exploitable, but accepting a non-loopback origin because of
+// a parsing quirk is the kind of thing that stops being theoretical the moment
+// the check is reused. So: an Origin must be exactly scheme://host[:port].
 func (s *Server) allowedOrigin(origin string) bool {
 	if origin == "" {
 		// Non-browser clients (curl, a test) send no Origin; they are held to
@@ -98,6 +142,12 @@ func (s *Server) allowedOrigin(origin string) bool {
 		return false
 	}
 	if u.Scheme != "http" && u.Scheme != "https" {
+		return false
+	}
+	if u.User != nil || u.Opaque != "" || u.RawQuery != "" || u.Fragment != "" {
+		return false
+	}
+	if u.Path != "" && u.Path != "/" {
 		return false
 	}
 	return validHost(u.Host)
