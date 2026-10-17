@@ -5,7 +5,9 @@ covers the workflow and the conventions that keep the audit honest.
 
 ## Development setup
 
-- Go 1.25+ on any OS (the audit itself only runs on Windows).
+- Go 1.26.9+ on any OS (the audit itself only runs on Windows). This is the
+  floor pinned in `go.mod`; the CI vuln-scan job reads it, so an older toolchain
+  fails the build.
 - Fork + clone, then:
 
 ```bash

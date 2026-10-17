@@ -7,9 +7,9 @@
 </p>
 
 [![CI](https://github.com/DevCop95/pullgoscript/actions/workflows/ci.yml/badge.svg)](https://github.com/DevCop95/pullgoscript/actions/workflows/ci.yml)
-![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go&logoColor=white)
+![Go](https://img.shields.io/badge/Go-1.26.9+-00ADD8?style=flat&logo=go&logoColor=white)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey?style=flat)
-![Version](https://img.shields.io/badge/version-2.0.1-00a2ed?style=flat)
+![Version](https://img.shields.io/badge/version-2.0.2-00a2ed?style=flat)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat)
 
 **OBLITERATUS** answers one question — *would Mimikatz work against this host?* — and answers it with evidence: registry state, token privileges, service configuration and browser store exposure, each mapped to the exact Mimikatz module and MITRE technique it corresponds to.
