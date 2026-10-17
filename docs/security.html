@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security model — OBLITERATUS</title>
+<meta name="description" content="The OBLITERATUS threat model: what v1 exposed, what v2 does instead, where the trust boundary sits, and the two limits that are documented rather than hidden.">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html">OBLITER<span>ATUS</span></a>
+    <nav class="main">
+      <a href="index.html#download">Download</a>
+      <a href="capabilities.html">Capabilities</a>
+      <a href="audit.html">Audit checks</a>
+      <a href="verify.html">Verify</a>
+      <a href="security.html" aria-current="page">Security model</a>
+      <a href="https://github.com/DevCop95/pullgoscript">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1>Security model</h1>
+  <p class="lede">
+    A tool that demonstrates credential theft has to survive the question "what if it is pointed
+    at me?". v1 did not; v2 was rebuilt around the answer, and the test suite pins each control
+    closed.
+  </p>
+
+  <h2>What v1 got wrong</h2>
+
+  <div class="tw">
+    <table>
+      <caption>Severity as assessed against the v1 code.</caption>
+      <thead><tr><th>Sev</th><th>v1 problem</th><th>v2 control</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="sev sev-crit">CRIT</td>
+          <td>Listened on <code>:8080</code> — the console was LAN-reachable</td>
+          <td>Binds <code>127.0.0.1</code> only; <code>ListenAndServe</code> refuses a non-loopback address</td>
+        </tr>
+        <tr>
+          <td class="sev sev-crit">CRIT</td>
+          <td>Token derived from the PID — visible to any process — and echoed to unauthenticated <code>GET /</code></td>
+          <td>256-bit <code>crypto/rand</code> token, regenerated per run, compared in constant time</td>
+        </tr>
+        <tr>
+          <td class="sev sev-crit">CRIT</td>
+          <td><code>CheckOrigin: return true</code> — any web page could open the WebSocket and drive the console</td>
+          <td>Origin must be loopback <strong>and</strong> the <code>?t=</code> token must match</td>
+        </tr>
+        <tr>
+          <td class="sev sev-crit">CRIT</td>
+          <td>No Host validation — DNS rebinding could read the token out of the page</td>
+          <td>Every route rejects a non-loopback <code>Host</code></td>
+        </tr>
+        <tr>
+          <td class="sev sev-high">HIGH</td>
+          <td>Mixed GET mutations, no method enforcement</td>
+          <td><code>ServeMux</code> method patterns: automatic <code>405</code> on the wrong verb</td>
+        </tr>
+        <tr>
+          <td class="sev sev-high">HIGH</td>
+          <td>Token in HTML readable cross-origin (no CSP, no headers)</td>
+          <td>Same-origin only, plus CSP, <code>nosniff</code>, <code>DENY</code> framing, <code>no-store</code></td>
+        </tr>
+        <tr>
+          <td class="sev sev-high">HIGH</td>
+          <td>DOM XSS: database-derived URLs rendered through <code>innerHTML</code></td>
+          <td>All server data escaped through <code>window.esc()</code> before it reaches the DOM</td>
+        </tr>
+        <tr>
+          <td class="sev sev-med">MED</td>
+          <td>Auto-UAC on every start</td>
+          <td>Elevation only when asked for: <code>--elevate</code>, or a module that cannot work unelevated</td>
+        </tr>
+        <tr>
+          <td class="sev sev-med">MED</td>
+          <td>Credentialed collectors reachable by default</td>
+          <td>Locked behind <code>--enable-*</code>, failing closed with an actionable <code>403</code></td>
+        </tr>
+        <tr>
+          <td class="sev sev-med">MED</td>
+          <td>Privileged modules failed opaquely — SAM errors looked like "no SAM material", LSASS failures hung the UI</td>
+          <td>The real cause is streamed to the dashboard (<code>sam_error</code> / <code>lsass_error</code>), UAC is requested up front, and a relaunch that yields no elevated token fails loudly instead of looping</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Where the boundary sits</h2>
+
+  <p>
+    Anyone who can read the dashboard page — loopback, same origin — <strong>is</strong> the
+    operator. That is the design: the console answers to the token, and the token is a lock on the
+    door, not on the room.
+  </p>
+
+  <p>Against a hostile <em>web page</em>, the boundary is airtight, and each layer is independent:</p>
+
+  <div class="cardgrid">
+    <div class="card">
+      <h3>It can reach the port</h3>
+      <p>But a cross-origin <code>fetch()</code> cannot read the response — same-origin policy.</p>
+    </div>
+    <div class="card">
+      <h3>It cannot set the header</h3>
+      <p>The custom <code>X-Signal-Token</code> header forces a CORS preflight, which is never approved, so the request is never sent. This is what protects state-changing routes from CSRF.</p>
+    </div>
+    <div class="card">
+      <h3>It cannot guess the token</h3>
+      <p>256 bits from <code>crypto/rand</code>, regenerated per run, compared in constant time.</p>
+    </div>
+    <div class="card">
+      <h3>Rebinding gets nothing</h3>
+      <p>A rebinding page reaches the port with its own hostname in <code>Host</code>, which is refused before any handler runs.</p>
+    </div>
+  </div>
+
+  <h2>Two limits, documented rather than hidden</h2>
+
+  <div class="callout warn">
+    <strong>1. The token defends against remote pages, not against local processes.</strong>
+    <code>GET /</code> serves the dashboard with the token inside it, and that route is guarded only
+    by the loopback <code>Host</code> check. Any process that can reach loopback — including one
+    running as a <em>different local user</em>, since loopback is machine-scoped — can read the token
+    and then use <code>POST /v1/sys/cmd</code> to execute commands as the user running the console.
+    The practical consequence is a deployment rule: <strong>run the console on a single-user
+    workstation</strong>. On a shared or RDP host it is a cross-user escalation path.
+  </div>
+
+  <div class="callout warn">
+    <strong>2. <code>POST /v1/sys/opt</code> changes the machine with no flag.</strong>
+    It writes HKLM policy and stops + disables the <code>DiagTrack</code> service, and unlike every
+    other state-changing capability it requires only the token — there is no
+    <code>--enable-*</code> gate, because the action is privacy hardening rather than credential
+    access. It is listed on the <a href="capabilities.html">Capabilities</a> page so nobody
+    discovers it by accident.
+  </div>
+
+  <p class="note">
+    Both are recorded as open design questions in
+    <a href="https://github.com/DevCop95/pullgoscript/issues/6">issue #6</a>, with the options and
+    their trade-offs, rather than left to be discovered by whoever reads the code next.
+  </p>
+
+  <h2>Intentional capabilities</h2>
+
+  <p>
+    These are features, not bugs — they are the reason the tool exists:
+  </p>
+
+  <ul>
+    <li><code>POST /v1/sys/cmd</code> executes shell commands <strong>as the token holder</strong>.</li>
+    <li><code>--enable-collect</code> decrypts browser credential stores and the local SAM/SYSTEM
+      hives <strong>on the local host</strong>.</li>
+    <li><code>--enable-inject</code> performs W^X process injection into an
+      <strong>operator-selected local PID</strong>.</li>
+    <li><code>--enable-persist</code> creates and removes local persistence footholds.</li>
+    <li><code>--enable-lateral</code> executes commands on <strong>operator-supplied remote
+      hosts</strong> over WinRM or SCM.</li>
+    <li><code>--enable-evasion</code> neuters ETW/AMSI <strong>in this process only</strong>.</li>
+  </ul>
+
+  <p>
+    They are reachable only over loopback, only with the per-run token, and the credential,
+    persistence, evasion, lateral and injection modules additionally require their flag at startup.
+    <strong>Hardening regressions in that chain are in scope</strong> for vulnerability reports.
+  </p>
+
+  <h2>Out of scope</h2>
+
+  <p>
+    Physical access, kernel-level attackers, and the operator console itself once the token holder
+    is trusted. Reports about the intentional capabilities above are answered with a pointer to this
+    page unless they show the <em>gate</em> failing — a route reachable without its flag, a
+    non-loopback bind, a missing Host or Origin check, a token comparison that leaks, or a
+    state-changing route that a hostile page can reach.
+  </p>
+
+  <h2>Reporting a vulnerability</h2>
+
+  <p>
+    Report privately, never in a public issue with exploit details: GitHub &rarr;
+    <strong>Security</strong> &rarr; <strong>Report a vulnerability</strong> on
+    <a href="https://github.com/DevCop95/pullgoscript/security/advisories/new">DevCop95/pullgoscript</a>,
+    or open a minimal issue titled <code>[SECURITY]</code> asking for a private channel. Include the
+    affected version or commit, impact, reproduction steps and any suggested fix. Expect an
+    acknowledgement within 72 hours and a status update within 10 business days; fixes are credited
+    in the release notes unless you prefer otherwise. The full policy is in
+    <a href="https://github.com/DevCop95/pullgoscript/blob/main/SECURITY.md">SECURITY.md</a>.
+  </p>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Assume breach. Audit the credentials before someone else does.</span>
+    <span><a href="https://github.com/DevCop95/pullgoscript/blob/main/LICENSE">MIT</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

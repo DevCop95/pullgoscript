@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Capabilities &amp; gates — OBLITERATUS</title>
+<meta name="description" content="Every OBLITERATUS API route, what it does, the flag that unlocks it and the MITRE ATT&CK technique it maps to.">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html">OBLITER<span>ATUS</span></a>
+    <nav class="main">
+      <a href="index.html#download">Download</a>
+      <a href="capabilities.html" aria-current="page">Capabilities</a>
+      <a href="audit.html">Audit checks</a>
+      <a href="verify.html">Verify</a>
+      <a href="security.html">Security model</a>
+      <a href="https://github.com/DevCop95/pullgoscript">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1>Capabilities &amp; gates</h1>
+  <p class="lede">
+    The complete API surface — all 29 routes — with the flag that unlocks each one. Nothing
+    here is hidden behind a flag you cannot see: a locked route answers
+    <code>403</code> and returns the exact flag that would open it.
+  </p>
+
+  <div class="callout">
+    Every request below is a loopback request to <code>127.0.0.1:8080</code> and carries
+    <code>X-Signal-Token: &lt;per-run token&gt;</code>. The token is shown in the dashboard page
+    and printed (short form) at startup; it is regenerated on every launch.
+    See <a href="security.html">Security model</a> for what that token does and does not protect.
+  </div>
+
+  <h2>Page and channel routes</h2>
+
+  <div class="tw">
+    <table>
+      <caption>No token: these cannot carry one on first load. The loopback <code>Host</code> check is what makes them safe to serve.</caption>
+      <thead><tr><th>Route</th><th>Guard</th><th>What it serves</th></tr></thead>
+      <tbody>
+        <tr><td class="rt">GET /</td><td>loopback Host</td><td>The dashboard (token injected into the page, same-origin only)</td></tr>
+        <tr><td class="rt">GET /healthz</td><td>loopback Host</td><td>Liveness, <code>ok</code></td></tr>
+        <tr><td class="rt">GET /ws</td><td>loopback Host + loopback <code>Origin</code> + <code>?t=</code></td><td>WebSocket console channel; browsers cannot attach headers to a WS handshake, so the token travels in the query string</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Always available (token only)</h2>
+
+  <div class="tw">
+    <table>
+      <caption>Compiled in, reachable with the per-run token, no flag required.</caption>
+      <thead><tr><th>Route</th><th>What it does</th><th>Technique</th></tr></thead>
+      <tbody>
+        <tr><td class="rt">GET /v1/sys/st</td><td>Execution context: reports <code>USER</code> or <code>ADMIN</code> for the process token</td><td>&mdash;</td></tr>
+        <tr><td class="rt">GET /v1/sys/b2</td><td>Live process table (JSON) for PID targeting</td><td>&mdash;</td></tr>
+        <tr><td class="rt">GET /v1/sys/hex</td><td>First 256 bytes of the payload file, hex-encoded — payload integrity inspection</td><td>&mdash;</td></tr>
+        <tr><td class="rt">POST /v1/sys/cmd</td><td>Command console: executes a shell command <strong>as the token holder</strong></td><td>&mdash;</td></tr>
+        <tr><td class="rt">POST /v1/sys/opt</td><td>Telemetry/privacy hardening: writes HKLM policy (<code>AllowTelemetry</code>, WER) and stops + disables <code>DiagTrack</code>. <em>No flag, and it takes no body.</em></td><td>&mdash;</td></tr>
+        <tr><td class="rt">POST /v1/audit/report</td><td>The audit checklist as JSON</td><td>&mdash;</td></tr>
+        <tr><td class="rt">POST /v1/audit/csv</td><td>The audit checklist as CSV</td><td>&mdash;</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Credential collection &mdash; <code>--enable-collect</code></h2>
+
+  <div class="tw">
+    <table>
+      <caption>Auto-elevates via UAC at startup: the SAM hives, the LSASS minidump and the browser App-Bound key unwrap cannot work with a filtered token.</caption>
+      <thead><tr><th>Route</th><th>What it does</th><th>Technique</th></tr></thead>
+      <tbody>
+        <tr><td class="rt">GET /v1/sys/a7</td><td>Browser credential inventory</td><td>T1555.003</td></tr>
+        <tr><td class="rt">GET /v1/sys/cookies</td><td>Browser cookie inventory</td><td>T1555.003</td></tr>
+        <tr><td class="rt">GET /v1/sys/nexus</td><td>Identity Nexus: the identity picture assembled from local browser stores</td><td>T1555.003</td></tr>
+        <tr><td class="rt">POST /v1/op/a7</td><td>Streamed credential collection</td><td>T1555.003</td></tr>
+        <tr><td class="rt">POST /v1/op/cookies</td><td>Streamed cookie collection</td><td>T1555.003</td></tr>
+        <tr><td class="rt">POST /v1/sys/sam</td><td>Exports the local SAM and SYSTEM hives with <code>RegSaveKeyEx</code> and walks the <code>[MS-SAMR]</code> hash chain</td><td>T1003.002</td></tr>
+        <tr><td class="rt">POST /v1/op/lsass</td><td>LSASS minidump — the <code>sekurlsa::logonpasswords</code> path</td><td>T1003.001</td></tr>
+        <tr><td class="rt">POST /v1/op/lsass-wipe</td><td>Shreds the collected LSASS material</td><td>T1003.001</td></tr>
+        <tr><td class="rt">POST /v1/op/roast-asrep</td><td>AS-REP roasting against accounts without pre-auth</td><td>T1558.004</td></tr>
+        <tr><td class="rt">POST /v1/op/roast-tgs</td><td>Kerberoasting: requests service tickets for SPNs</td><td>T1558.003</td></tr>
+        <tr><td class="rt">POST /v1/op/spn-enum</td><td>SPN enumeration, the recon step before roasting</td><td>T1558.003</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Persistence &mdash; <code>--enable-persist</code></h2>
+
+  <div class="tw">
+    <table>
+      <caption>Four backends behind one manager, each mapped to its technique.</caption>
+      <thead><tr><th>Route</th><th>What it does</th><th>Technique</th></tr></thead>
+      <tbody>
+        <tr><td class="rt">GET /v1/sys/persist</td><td>Enumerates all four backends — Run keys, Startup folder, scheduled tasks, WMI subscriptions</td><td>&mdash;</td></tr>
+        <tr><td class="rt">POST /v1/op/persist-add</td><td>Creates one foothold: registry Run key, Startup folder file, <code>schtasks</code> entry, or a <code>CommandLineEventConsumer</code></td><td>T1547.001 &middot; T1547.009 &middot; T1053.005 &middot; T1546.003</td></tr>
+        <tr><td class="rt">POST /v1/op/persist-del</td><td>Removes one; a missing entry is not an error</td><td>same four</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Self-evasion &mdash; <code>--enable-evasion</code></h2>
+
+  <div class="tw">
+    <table>
+      <caption>Affects this process only. Both patches are logged with the resolved address, never applied silently.</caption>
+      <thead><tr><th>Route</th><th>What it does</th><th>Technique</th></tr></thead>
+      <tbody>
+        <tr><td class="rt">POST /v1/op/etw</td><td>Neuters <code>ntdll!EtwEventWrite</code> in the tool's own process (W^X-safe transition)</td><td>T1562.006</td></tr>
+        <tr><td class="rt">POST /v1/op/amsi</td><td>Patches <code>amsi!AmsiScanBuffer</code> in the tool's own process</td><td>T1562.001</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="note">
+    Repatching is refused with <code>422 already patched</code> rather than applied twice — a
+    blind second patch would corrupt the prologue it already rewrote.
+  </p>
+
+  <h2>Lateral movement &mdash; <code>--enable-lateral</code></h2>
+
+  <div class="tw">
+    <table>
+      <caption>Credentials come from the operator in the request body; nothing is stored.</caption>
+      <thead><tr><th>Route</th><th>What it does</th><th>Technique</th></tr></thead>
+      <tbody>
+        <tr><td class="rt">POST /v1/op/lateral-winrm</td><td>Runs a command on a remote host over WS-Management (SOAP, Basic auth)</td><td>T1021.006</td></tr>
+        <tr><td class="rt">POST /v1/op/lateral-scm</td><td>Remote execution through the Service Control Manager: create, start, delete</td><td>T1021.002 &middot; T1569.002</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Process injection &mdash; <code>--enable-inject</code></h2>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Route</th><th>What it does</th><th>Technique</th></tr></thead>
+      <tbody>
+        <tr><td class="rt">POST /v1/op/d4</td><td>Halo's Gate indirect-syscall injection into an operator-selected local PID. amd64 only. RW&nbsp;&rarr;&nbsp;RX transition: no RWX page ever exists.</td><td>T1055</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="note">
+    The payload is unpacked in memory right before the injection. Pack it with
+    <code>oblpack.exe -in payloads\research_signal.bin -key &lt;passphrase&gt;</code> and start the
+    console with the same <code>--payload-key</code>. The envelope is
+    <code>magic || nonce || AES-256-GCM</code>, so the on-disk bytes match no public signature.
+    The research note on SSN recovery and the W^X design is in
+    <a href="https://github.com/DevCop95/pullgoscript/blob/main/docs/HALOS_GATE.md">docs/HALOS_GATE.md</a>.
+  </p>
+
+  <h2>Examples</h2>
+
+  <p class="note">Request shapes as the handlers enforce them; a wrong shape answers <code>400</code> with the expected body.</p>
+
+  <pre><code># execution context and process table
+curl -s -H "X-Signal-Token: $TOK" http://127.0.0.1:8080/v1/sys/st
+curl -s -H "X-Signal-Token: $TOK" http://127.0.0.1:8080/v1/sys/b2
+
+# command console (runs as the token holder)
+curl -s -X POST -H "X-Signal-Token: $TOK" \
+     -d '{"c":"whoami"}' http://127.0.0.1:8080/v1/sys/cmd
+
+# persistence: list, then add a Run key
+curl -s -H "X-Signal-Token: $TOK" http://127.0.0.1:8080/v1/sys/persist
+curl -s -X POST -H "X-Signal-Token: $TOK" \
+     -d '{"type":"run","hive":"HKCU","name":"x","cmd":"C:\\path\\to\\binary.exe"}' \
+     http://127.0.0.1:8080/v1/op/persist-add
+
+# lateral movement over WinRM
+curl -s -X POST -H "X-Signal-Token: $TOK" \
+     -d '{"host":"10.0.0.5","user":"CORP\\svc","password":"…","command":"whoami"}' \
+     http://127.0.0.1:8080/v1/op/lateral-winrm
+
+# injection into a selected PID (amd64)
+curl -s -X POST -H "X-Signal-Token: $TOK" \
+     -d '{"pid":1234}' http://127.0.0.1:8080/v1/op/d4</code></pre>
+
+  <div class="callout warn">
+    <strong>Two things worth knowing before you unlock anything.</strong>
+    <code>POST /v1/sys/opt</code> modifies the machine — HKLM policy and the
+    <code>DiagTrack</code> service — and unlike every other state-changing capability it requires
+    no flag, only the token. And the token itself is handed to any process that can reach
+    loopback and fetch the dashboard page, so the console is a single-user tool by design:
+    the boundary is the machine, not the user account. Both are documented under
+    <a href="security.html">Security model</a>.
+  </div>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Assume breach. Audit the credentials before someone else does.</span>
+    <span><a href="https://github.com/DevCop95/pullgoscript/blob/main/LICENSE">MIT</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verify a release — OBLITERATUS</title>
+<meta name="description" content="What the OBLITERATUS release pipeline produces, how to verify a download with cosign and the SBOM, and the current Authenticode gap.">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html">OBLITER<span>ATUS</span></a>
+    <nav class="main">
+      <a href="index.html#download">Download</a>
+      <a href="capabilities.html">Capabilities</a>
+      <a href="audit.html">Audit checks</a>
+      <a href="verify.html" aria-current="page">Verify</a>
+      <a href="security.html">Security model</a>
+      <a href="https://github.com/DevCop95/pullgoscript">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <h1>Verify a release</h1>
+  <p class="lede">
+    OBLITERATUS ships offensive modules, so the artifacts will trip SmartScreen and Defender no
+    matter what. This page is about the guarantees that <em>can</em> be made cryptographically,
+    and the one that cannot be made yet.
+  </p>
+
+  <h2>What the pipeline produces</h2>
+
+  <p>
+    <code>.github/workflows/release.yml</code> runs on every <code>v*</code> tag and emits,
+    per release:
+  </p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Artifact</th><th>What it proves</th></tr></thead>
+      <tbody>
+        <tr><td class="rt">obliteratus_&lt;ver&gt;_windows_&lt;arch&gt;.zip</td><td>The binaries plus README, SECURITY.md and LICENSE</td></tr>
+        <tr><td class="rt">checksums.txt</td><td>SHA-256 of every archive</td></tr>
+        <tr><td class="rt">checksums.txt.sig</td><td><strong>cosign keyless</strong> signature over <code>checksums.txt</code></td></tr>
+        <tr><td class="rt">checksums.txt.pem</td><td>The short-lived certificate binding that signature to the workflow run</td></tr>
+        <tr><td class="rt">*.sbom.json</td><td>SPDX SBOM (syft) — full dependency inventory per archive</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <strong>There is no long-lived signing key in this repository.</strong> The keyless signature
+    is bound to the GitHub Actions OIDC identity of the workflow run and recorded in the Sigstore
+    <strong>Rekor</strong> transparency log, so it cannot be forged without compromising GitHub's
+    OIDC issuer — and any use of that identity is publicly logged.
+  </div>
+
+  <h2>Verify a download</h2>
+
+  <ol class="steps">
+    <li>
+      <strong>Install cosign</strong> — <a href="https://docs.sigstore.dev/cosign/installation/">docs.sigstore.dev</a>
+    </li>
+    <li>
+      <strong>Checksum integrity.</strong>
+      <pre><code>sha256sum -c checksums.txt
+# PowerShell: Get-FileHash -Algorithm SHA256 .\obliteratus_2.0.2_windows_amd64.zip</code></pre>
+    </li>
+    <li>
+      <strong>Signature, pinned to the exact workflow identity.</strong>
+      <pre><code>cosign verify-blob \
+  --certificate checksums.txt.pem \
+  --signature   checksums.txt.sig \
+  --certificate-identity-regexp "^https://github.com/DevCop95/pullgoscript/" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  checksums.txt
+# → "Verified OK"</code></pre>
+    </li>
+    <li>
+      <strong>Transparency log entry</strong> — proves it was logged, not merely signed.
+      <pre><code>rekor-cli get --artifact checksums.txt</code></pre>
+    </li>
+  </ol>
+
+  <div class="callout warn">
+    <strong>The identity flag is the crux.</strong> A bare <code>Verified OK</code> only says
+    <em>someone</em> signed the file. Pinning the identity to <code>DevCop95/pullgoscript</code> is
+    what stops a signature from any other repository being accepted. For v2.0.2 the certificate
+    subject is exactly:
+    <pre><code>https://github.com/DevCop95/pullgoscript/.github/workflows/release.yml@refs/tags/v2.0.2</code></pre>
+    Use <code>--certificate-identity</code> (singular, exact match) to pin one tag instead of the
+    repository. Note that the subject embeds the repository name <em>at the time of the release</em>,
+    so a later rename invalidates an exact pin — which is why the release workflow builds its
+    self-check from <code>${GITHUB_REPOSITORY}</code> and the command above uses the repo-prefix
+    regexp.
+  </div>
+
+  <p class="note">
+    cosign v3 prints <code>Flag --certificate has been deprecated…</code> for the two flags above.
+    That is expected: the release ships the detached <code>.sig</code> + <code>.pem</code> pair and
+    the warning refers to the newer single-file <code>--bundle</code> form. The verification result
+    is unaffected.
+  </p>
+
+  <h3>Reviewing the dependency inventory</h3>
+
+  <pre><code>syft convert obliteratus_2.0.2_windows_amd64.sbom.json -o table
+# or grep for the modules you actually care about</code></pre>
+
+  <h2>Authenticode: not applied</h2>
+
+  <p>The <code>.exe</code> files are <strong>not</strong> Authenticode-signed. Concretely:</p>
+
+  <ul>
+    <li><code>Get-AuthenticodeSignature .\obliteratus.exe</code> &rarr; <code>Status: NotSigned</code></li>
+    <li>SmartScreen shows <em>"Windows protected your PC"</em>; Defender may quarantine on sight of
+      the injection / credential-collection strings</li>
+  </ul>
+
+  <p>
+    This is expected for an unsigned offensive tool and is <strong>not</strong> a build failure.
+    A signature Windows actually trusts needs an <strong>EV certificate</strong> or an
+    <strong>Azure Trusted Signing</strong> account — a paid, identity-verified credential that must
+    live in a secret. No placeholder certificate is checked into CI, because a placeholder would
+    prove nothing while looking like it did.
+  </p>
+
+  <p>
+    Until that credential exists, the cosign signature is the honest guarantee:
+    <em>this binary came from this repository's release workflow</em>, even though Windows will not
+    validate it natively. The gap is tracked publicly in
+    <a href="https://github.com/DevCop95/pullgoscript/issues/5">issue #5</a>.
+  </p>
+
+  <h3>If you hold a certificate</h3>
+
+  <p>You can sign a locally built binary today with a cert in <code>CurrentUser\My</code>:</p>
+
+  <pre><code># $cert = (Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert)[0]
+signtool sign `
+  /fd SHA256 `
+  /tr http://timestamp.digicert.com /td SHA256 `
+  /n "Your Company Name" `
+  .\obliteratus.exe .\oblpack.exe
+
+Get-AuthenticodeSignature .\obliteratus.exe   # → Valid</code></pre>
+
+  <p class="note">
+    Timestamping with <code>/tr</code> is not optional: without it the signature dies the moment the
+    certificate expires.
+  </p>
+
+  <div class="tw">
+    <table>
+      <caption>Supply-chain status</caption>
+      <thead><tr><th>Step</th><th>State</th></tr></thead>
+      <tbody>
+        <tr><td>cosign keyless signature over <code>checksums.txt</code></td><td><span class="pill ok">live &middot; v2.0.2 verified</span></td></tr>
+        <tr><td>SPDX SBOM per archive</td><td><span class="pill ok">live</span></td></tr>
+        <tr><td>SHA-256 checksums</td><td><span class="pill ok">live</span></td></tr>
+        <tr><td>Authenticode on the <code>.exe</code> files</td><td><span class="pill hot">blocked on a certificate</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>What provenance is not</h2>
+
+  <p>
+    The cosign guarantee is about <strong>provenance</strong> — which repository and workflow built
+    this — not about <strong>safety</strong>. OBLITERATUS is dual-use by design. Provenance, a
+    readable SBOM and a pinned toolchain are the whole point; reading the code you are about to run
+    is still the stronger move, and building from source is documented on the
+    <a href="index.html">front page</a>.
+  </p>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Assume breach. Audit the credentials before someone else does.</span>
+    <span><a href="https://github.com/DevCop95/pullgoscript/blob/main/LICENSE">MIT</a></span>
+  </div>
+</footer>
+
+</body>
+</html>
