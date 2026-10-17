@@ -160,6 +160,13 @@ jobs:
           # -no-fail: gosec exits non-zero on the tolerated assembly type error
           # even with no findings; the gates below decide pass/fail instead.
           "$GOSEC" -no-fail -fmt=json -exclude=G103,G104 ./... > gosec.json
+          # A scan that parsed nothing must not read as a clean scan.
+          files=$(jq '.Stats.files' gosec.json)
+          if [ "${files:-0}" -eq 0 ]; then
+            echo "::error::gosec analysed 0 files — the scan is vacuous, not clean"
+            exit 1
+          fi
+          jq -r '"gosec stats: files=\(.Stats.files) lines=\(.Stats.lines) nosec=\(.Stats.nosec) found=\(.Stats.found)"' gosec.json
           issues=$(jq '.Issues | length' gosec.json)
           if [ "$issues" -ne 0 ]; then
             jq -r '.Issues[] | "::error file=\(.file),line=\(.line)::\(.rule_id) \(.details)"' gosec.json
