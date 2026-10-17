@@ -151,9 +151,12 @@ jobs:
         run: go install github.com/securego/gosec/v2/cmd/gosec@latest
       - name: gosec
         run: |
+          # setup-go does not put $(go env GOPATH)/bin on PATH, so resolve the
+          # binary explicitly rather than relying on `gosec` being found.
+          GOSEC="$(go env GOPATH)/bin/gosec"
           # -no-fail: gosec exits non-zero on the tolerated assembly type error
           # even with no findings; the gates below decide pass/fail instead.
-          gosec -no-fail -fmt=json -exclude=G103,G104 ./... > gosec.json
+          "$GOSEC" -no-fail -fmt=json -exclude=G103,G104 ./... > gosec.json
           issues=$(jq '.Issues | length' gosec.json)
           if [ "$issues" -ne 0 ]; then
             jq -r '.Issues[] | "::error file=\(.file),line=\(.line)::\(.rule_id) \(.details)"' gosec.json
