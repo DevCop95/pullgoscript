@@ -124,10 +124,13 @@ func addStartup(name, cmd string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	// Modes are the tightest that still work: Windows derives the real ACL from
+	// the parent directory and only honours the read-only bit here, so 0700/0600
+	// costs nothing and keeps the intent explicit if this is ever ported.
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(dir, name+".cmd"), []byte(shimContent(cmd)), 0o644)
+	return os.WriteFile(filepath.Join(dir, name+".cmd"), []byte(shimContent(cmd)), 0o600)
 }
 
 func removeStartup(name string) error {
@@ -155,7 +158,7 @@ const taskPrefix = "OBL_"
 // runHidden runs a child process with no visible window and returns its
 // combined output.
 func runHidden(name string, args ...string) ([]byte, error) {
-	cmd := exec.Command(name, args...)
+	cmd := exec.Command(name, args...) //#nosec G204 -- name/args are internal constants and generated task names, never operator input
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	return cmd.CombinedOutput()
 }

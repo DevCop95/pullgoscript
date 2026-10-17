@@ -17,7 +17,7 @@ package obfuscate
 // pepperMask is the fixed constant the pepper itself is stored against, so the
 // mask key is not a plaintext string in the binary either (a single grep for
 // the product name must not identify the tool).
-func pepperMask(i int) byte { return byte(i*17 + 3) }
+func pepperMask(i int) byte { return byte(i*17 + 3) } //#nosec G115 -- deliberate byte-width wrap-around in the mask function
 
 // pepperEnc is "obl1t3r4tu5" XOR pepperMask, byte by byte. Stored encoded so
 // the key does not sit in .rodata as contiguous printable ASCII.
@@ -35,7 +35,7 @@ var pepper = func() []byte {
 
 // maskByte computes the mask for position i.
 func maskByte(i int) byte {
-	return pepper[i%len(pepper)] ^ byte(i*31+7)
+	return pepper[i%len(pepper)] ^ byte(i*31+7) //#nosec G115 -- deliberate byte-width wrap-around in the mask function
 }
 
 // Mask encodes plain into the masked form embedded in the binary.

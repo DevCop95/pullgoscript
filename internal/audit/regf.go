@@ -52,7 +52,7 @@ func (h *regfHive) cell(off uint32) ([]byte, error) {
 	if p < regfHeaderSize || p+4 > len(h.data) {
 		return nil, fmt.Errorf("regf: cell offset 0x%x out of range", off)
 	}
-	size := int32(binary.LittleEndian.Uint32(h.data[p:]))
+	size := int32(binary.LittleEndian.Uint32(h.data[p:])) //#nosec G115 -- cell size is a signed 32-bit field per the regf on-disk format
 	if size < 0 {
 		size = -size
 	}
@@ -247,7 +247,7 @@ func (n *nk) value(name string) ([]byte, uint32, error) {
 	}
 	count := int(n.numValues)
 	var offs []uint32
-	if len(list) >= 4 && binary.LittleEndian.Uint32(list[0:4]) == uint32(count) {
+	if len(list) >= 4 && binary.LittleEndian.Uint32(list[0:4]) == uint32(count) { //#nosec G115 -- count is the key node's numValues, a uint32 field; conversion is exact
 		// count-prefixed variant
 		if 4+count*4 > len(list) {
 			return nil, 0, fmt.Errorf("regf: value list of %q truncated", n.name)

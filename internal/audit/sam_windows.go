@@ -32,8 +32,8 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/des"
-	"crypto/md5"
+	"crypto/des" //#nosec G502 -- DES is mandated by [MS-SAMR] 2.2.11 key derivation; the wire format dictates the primitive
+	"crypto/md5" //#nosec G501 -- MD5 is mandated by the SAM revision-1 key derivation in [MS-SAMR]
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -75,13 +75,13 @@ func DumpSAM(em Emitter) ([]SAMAccount, error) {
 
 	// Read both hives into memory, then wipe and delete the on-disk copies
 	// right away: from here on the secrets live only in this process.
-	sysData, err := os.ReadFile(sysFile)
+	sysData, err := os.ReadFile(sysFile) //#nosec G304 -- sysFile is a fixed System32\config path we produced with RegSaveKeyEx
 	wipeAndRemove(sysFile)
 	if err != nil {
 		wipeAndRemove(samFile)
 		return nil, fmt.Errorf("sam: read SYSTEM: %w", err)
 	}
-	samData, err := os.ReadFile(samFile)
+	samData, err := os.ReadFile(samFile) //#nosec G304 -- samFile is a fixed System32\config path we produced with RegSaveKeyEx
 	wipeAndRemove(samFile)
 	if err != nil {
 		return nil, fmt.Errorf("sam: read SAM: %w", err)
@@ -184,7 +184,7 @@ func enablePrivilege(name string) error {
 // wipeAndRemove overwrites a secrets-bearing file with zeros (best effort —
 // a journaling FS keeps the old blocks until reuse) and unlinks it.
 func wipeAndRemove(path string) {
-	if f, err := os.OpenFile(path, os.O_WRONLY, 0); err == nil {
+	if f, err := os.OpenFile(path, os.O_WRONLY, 0); err == nil { //#nosec G304 -- path is a hive copy we wrote into our own temp dir
 		_ = f.Truncate(0)
 		f.Close()
 	}
@@ -293,7 +293,7 @@ func hashedBootKeyRC4(bootKey, salt, stored []byte) ([]byte, error) {
 	if len(stored) < 32 || len(salt) != 16 || len(bootKey) != 16 {
 		return nil, fmt.Errorf("sam: revision-1 key material malformed")
 	}
-	h := md5.New()
+	h := md5.New() //#nosec G401 -- MD5 as specified by [MS-SAMR] 2.2.11.1.1, not a security choice
 	h.Write(salt)
 	h.Write(qwertyConst)
 	h.Write(bootKey)
@@ -371,7 +371,7 @@ func parseUserV(rid uint32, v, hbk []byte) (acc SAMAccount, ok bool, err error) 
 	le32 := func(off int) uint32 { return binary.LittleEndian.Uint32(v[off : off+4]) }
 	data := v[userVData:]
 	slice := func(off, ln uint32) ([]byte, error) {
-		if off > uint32(len(data)) || ln > uint32(len(data))-off {
+		if off > uint32(len(data)) || ln > uint32(len(data))-off { //#nosec G115 -- data is an in-memory hive, far below 4 GiB
 			return nil, fmt.Errorf("sam: RID %d: data slice [%d:+%d] out of %d bytes", rid, off, ln, len(data))
 		}
 		return data[off : off+ln], nil
@@ -458,7 +458,7 @@ func decryptHash(hbk []byte, rid uint32, blob []byte, newStyle bool, constant []
 		if len(blob) < 20 {
 			return nil, fmt.Errorf("RC4 hash blob too small (%d bytes)", len(blob))
 		}
-		h := md5.New()
+		h := md5.New() //#nosec G401 -- MD5 as specified by [MS-SAMR] 2.2.11.1.2 (RC4 hash blob)
 		h.Write(hbk[:16])
 		var r [4]byte
 		binary.LittleEndian.PutUint32(r[:], rid)
@@ -471,11 +471,11 @@ func decryptHash(hbk []byte, rid uint32, blob []byte, newStyle bool, constant []
 	}
 
 	k1, k2 := deriveDESKeys(rid)
-	c1, err := des.NewCipher(k1)
+	c1, err := des.NewCipher(k1) //#nosec G405 -- DES per [MS-SAMR] 2.2.11.1.1 (revision-1 hash decryption)
 	if err != nil {
 		return nil, err
 	}
-	c2, err := des.NewCipher(k2)
+	c2, err := des.NewCipher(k2) //#nosec G405 -- DES per [MS-SAMR] 2.2.11.1.1 (revision-1 hash decryption)
 	if err != nil {
 		return nil, err
 	}
