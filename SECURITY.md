@@ -40,6 +40,39 @@ protects are:
 **Out of scope:** physical access, kernel-level attackers, and the (by design)
 operator console once the token holder is trusted.
 
+## Documented limits
+
+These are boundaries of the current design, not bugs, and they are written
+here so they are not rediscovered as surprises.
+
+### The token is a lock on the door, not on the room
+
+`GET /` hands the token to the page that runs the dashboard, and it cannot tell
+your browser apart from any other local process that asks. Anything running in
+your session with loopback access can fetch the token and then call the API
+with it. There is no privilege boundary between the console and a process
+running as the same user, and none is claimed.
+
+- **Single-user workstation** (the intended deployment): a process that already
+  runs as you has everything the console can do, so the token adds no exposure
+  beyond what that process already has.
+- **Shared host, terminal server, or a lower-privilege local process:** when
+  `--enable-collect` is set the console is elevated, so a lower-privilege
+  process that reads the token can ask the elevated server to export SAM/SYSTEM
+  or read browser stores. Do not run the console elevated with those modules
+  unlocked on a host where another account can reach loopback.
+
+If this boundary needs to be hard rather than documented, the fix is a named
+pipe with an ACL restricted to the operator's SID instead of an HTTP listener;
+that is tracked in issue #6.
+
+### `POST /v1/sys/opt` changes machine policy with no flag
+
+It writes registry policy and disables `DiagTrack` with no startup flag and no
+request body, so anyone holding the token can change machine policy without any
+of the module gates. It is documented here rather than gated, because the token
+holder is trusted by design (see above).
+
 ## Known intentional capabilities
 
 These are features, not bugs — they are the reason the tool exists:
