@@ -88,6 +88,27 @@ jobs:
       - name: unit tests (platform-neutral packages)
         run: go test ./internal/token ./internal/audit ./internal/ui ./internal/server
 
+  # The docs site's JS (docs/site.js) is the file GitHub Pages actually serves,
+  # and no Go test can see it. A wrong API field name, a broken URL check or a
+  # renamed element id in index.html all fail *silently*: the reader gets an
+  # empty download table and no error on either side. That is not hypothetical —
+  # the first shipped URL check accepted ".../releases/download/v9/../../../evil",
+  # which resolves to https://github.com/DevCop95/evil, and it was found by
+  # running the file, not reading it. So the shipped file is run in node against
+  # a stub DOM, with hostile payloads. No install, no network: fixtures are
+  # trimmed copies of a real API response, so this gate cannot go red because
+  # GitHub was slow.
+  site-test:
+    name: site js test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+      - name: run docs/site.test.js against docs/site.js
+        run: node docs/site.test.js
+
   # Fuzzing on every push/PR. Two groups of targets:
   #   * the module parsers — registry hives, KDC replies, payload envelopes —
   #     which read bytes this tool did not author;
