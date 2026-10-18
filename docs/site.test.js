@@ -3,20 +3,26 @@
 // asserted instead of assumed.
 //
 // Why this exists: site.js renders the download table, and no Go test can see
-// it. A renamed field, a broken URL check or an element id changed in
-// index.html all fail *quietly* — the reader gets an empty table and no error
-// on either side. That is not hypothetical: the first shipped version of the
-// URL check accepted
+// it. Three failures that all showed up only once the file was actually run:
 //
-//   https://github.com/DevCop95/pullgoscript/releases/download/v9/../../../evil
+//   1. a `startsWith` URL check accepted
+//      ".../releases/download/v9/../../../evil", which resolves to
+//      https://github.com/DevCop95/evil
+//   2. the SHA-256 column was fetched from github.com/.../releases/download/
+//      checksums.txt, which sends no Access-Control-Allow-Origin — every real
+//      browser logged "blocked by CORS policy" and the hashes never rendered
+//   3. an element id renamed in index.html makes site.js return at its guard,
+//      which reads as a passing test and an empty page
 //
-// which resolves to https://github.com/DevCop95/evil. Running the file found
-// it; reading it did not. So the file gets run.
+// (2) is the one a DOM stub alone cannot catch: stubs do not implement CORS.
+// So the test asserts the *request budget* instead — exactly one fetch, to the
+// only origin that returns CORS headers. That is checkable offline and it is
+// the property that actually matters in a browser.
 //
 // No dependencies and no network: `node docs/site.test.js` in CI, nothing to
 // install. The fixtures are trimmed copies of a real
 // /repos/DevCop95/pullgoscript/releases/latest response (v2.0.2, published
-// 2026-10-17) and of that release's checksums.txt, so the shapes are the ones
+// 2026-10-17), including its real `digest` fields, so the shapes are the ones
 // GitHub actually sends. SITE_TEST_LIVE=1 hits the live API instead; CI never
 // does, so a GitHub hiccup cannot turn this gate red.
 "use strict";
@@ -32,6 +38,12 @@ const HTML = fs.readFileSync(path.join(DIR, "index.html"), "utf8");
 const ORIGIN = "https://github.com";
 const ASSET_PATH = "/DevCop95/pullgoscript/releases/download/";
 const PREFIX = ORIGIN + ASSET_PATH;
+const API = "https://api.github.com/repos/DevCop95/pullgoscript/releases/latest";
+// The only origin in this page that answers with Access-Control-Allow-Origin.
+// github.com/.../releases/download/... does not, and neither does the CDN it
+// redirects to — that is the whole reason the page must not ask them.
+const CORS_ORIGIN = "https://api.github.com/";
+
 
 let checks = 0;
 function ok(label, detail) {
@@ -51,30 +63,39 @@ function eq(label, actual, expected) {
 }
 
 // --- fixtures: real values, not invented ones ----------------------------
-// Sizes are the byte counts the API reported, which is also what pins the
-// human-readable column: 6131480 must render as "5.8 MiB", the same string the
-// static fallback table in index.html carries by hand.
-
-const CHECKSUMS = [
-  "90b2e6e5794ed17892ccded42df81ea74840ca40b50370bd9fc7e117d9cff3c8  obliteratus_2.0.2_windows_amd64.zip",
-  "ce40c67281c31eb540e8f4639894bf471b110f1fb35136ed413344dd64477c66  obliteratus_2.0.2_windows_amd64.zip.sbom.json",
-  "ae47be1d2bbce867b6e5f08de35be2e3d90649ffa8bf9c7bdecc1930cb077160  obliteratus_2.0.2_windows_arm64.zip",
-  "68b9ab079ed67a5b5dba381ec2cff53f3b9dcf6ebe74de1a57a778d442a3662c  obliteratus_2.0.2_windows_arm64.zip.sbom.json",
-].join("\n") + "\n";
+// `digest` is what the API returns for each asset. The four values that also
+// appear in the published checksums.txt match it exactly, which is what makes
+// the column trustworthy: the page is not parsing a file it re-downloads, it
+// is quoting GitHub's own record of what it signed the release with.
 
 const RELEASE = {
   tag_name: "v2.0.2",
   published_at: "2026-10-17T13:36:41Z",
   assets: [
-    { name: "checksums.txt", size: 428, browser_download_url: PREFIX + "v2.0.2/checksums.txt" },
-    { name: "checksums.txt.pem", size: 3268, browser_download_url: PREFIX + "v2.0.2/checksums.txt.pem" },
-    { name: "checksums.txt.sig", size: 96, browser_download_url: PREFIX + "v2.0.2/checksums.txt.sig" },
-    { name: "obliteratus_2.0.2_windows_amd64.zip", size: 6131480, browser_download_url: PREFIX + "v2.0.2/obliteratus_2.0.2_windows_amd64.zip" },
-    { name: "obliteratus_2.0.2_windows_amd64.zip.sbom.json", size: 26548, browser_download_url: PREFIX + "v2.0.2/obliteratus_2.0.2_windows_amd64.zip.sbom.json" },
-    { name: "obliteratus_2.0.2_windows_arm64.zip", size: 5622388, browser_download_url: PREFIX + "v2.0.2/obliteratus_2.0.2_windows_arm64.zip" },
-    { name: "obliteratus_2.0.2_windows_arm64.zip.sbom.json", size: 26548, browser_download_url: PREFIX + "v2.0.2/obliteratus_2.0.2_windows_arm64.zip.sbom.json" },
+    { name: "checksums.txt", size: 428, browser_download_url: PREFIX + "v2.0.2/checksums.txt",
+      digest: "sha256:c50ddb6e302151ac17c43f7dae1811d6d0dec2a342f1731ab176bc2f8916057a" },
+    { name: "checksums.txt.pem", size: 3268, browser_download_url: PREFIX + "v2.0.2/checksums.txt.pem",
+      digest: "sha256:9c53fa9a38fd70d6ad965bc902a72bdced21c5b0a05bea2dbba40676a32b73d5" },
+    { name: "checksums.txt.sig", size: 96, browser_download_url: PREFIX + "v2.0.2/checksums.txt.sig",
+      digest: "sha256:0be6c93eb5ae7e033f374ef255af3eda613a8314fa1202d33a59d30a9b79d842" },
+    { name: "obliteratus_2.0.2_windows_amd64.zip", size: 6131480,
+      browser_download_url: PREFIX + "v2.0.2/obliteratus_2.0.2_windows_amd64.zip",
+      digest: "sha256:90b2e6e5794ed17892ccded42df81ea74840ca40b50370bd9fc7e117d9cff3c8" },
+    { name: "obliteratus_2.0.2_windows_amd64.zip.sbom.json", size: 26548,
+      browser_download_url: PREFIX + "v2.0.2/obliteratus_2.0.2_windows_amd64.zip.sbom.json",
+      digest: "sha256:ce40c67281c31eb540e8f4639894bf471b110f1fb35136ed413344dd64477c66" },
+    { name: "obliteratus_2.0.2_windows_arm64.zip", size: 5622388,
+      browser_download_url: PREFIX + "v2.0.2/obliteratus_2.0.2_windows_arm64.zip",
+      digest: "sha256:ae47be1d2bbce867b6e5f08de35be2e3d90649ffa8bf9c7bdecc1930cb077160" },
+    { name: "obliteratus_2.0.2_windows_arm64.zip.sbom.json", size: 26548,
+      browser_download_url: PREFIX + "v2.0.2/obliteratus_2.0.2_windows_arm64.zip.sbom.json",
+      digest: "sha256:68b9ab079ed67a5b5dba381ec2cff53f3b9dcf6ebe74de1a57a778d442a3662c" },
   ],
 };
+
+// What the browser is allowed to read from a third-party origin. Kept here as
+// a plain table so the request-budget assertion is a comparison, not a hope.
+const CORS_OK = [CORS_ORIGIN];
 
 // --- the DOM the page would build, plus a trap for unsafe hrefs ----------
 
@@ -113,9 +134,16 @@ function makeEl(tag) {
 // rather than a passing run.
 const idsInHTML = new Set([...HTML.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]));
 
+// Records every URL the page asks for, and flags as a violation anything
+// outside api.github.com — a real browser would refuse it, so a stub that
+// silently "succeeds" would be hiding the failure. This is scenario 2 of the
+// bug list above, encoded.
+let corsViolations = [];
+
 async function run(payload, opts) {
   opts = opts || {};
   violations = [];
+  corsViolations = [];
   const dom = { "dl-live": makeEl("div"), "dl-status": makeEl("p"), "dl-fallback": makeEl("table") };
   const fetched = [];
 
@@ -125,12 +153,14 @@ async function run(payload, opts) {
   };
   const fetch = url => {
     fetched.push(url);
-    if (opts.httpStatus && url.indexOf("/releases/latest") !== -1) {
-      return Promise.resolve({ ok: false, status: opts.httpStatus, json: () => Promise.reject(new Error("no body")), text: () => Promise.resolve("") });
+    if (typeof url !== "string" || !CORS_OK.some(ok => url.indexOf(ok) === 0)) {
+      corsViolations.push(String(url));
+      // Fail the way a browser fails: opaque, no data. The test then has to
+      // notice that the page went empty.
+      return Promise.reject(new TypeError("Failed to fetch (CORS)"));
     }
-    if (url.indexOf("checksums.txt") !== -1) {
-      if (opts.sumsBroken) return Promise.reject(new Error("network down"));
-      return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(opts.sumsText || "") });
+    if (opts.httpStatus) {
+      return Promise.resolve({ ok: false, status: opts.httpStatus, json: () => Promise.reject(new Error("no body")) });
     }
     return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(payload) });
   };
@@ -157,17 +187,14 @@ function live() {
   return process.env.SITE_TEST_LIVE === "1";
 }
 
-async function loadLive(what) {
-  const r = await fetch("https://api.github.com/repos/DevCop95/pullgoscript/releases/latest", {
-    headers: { Accept: "application/vnd.github+json" },
-  });
+// Live mode exists for a human running it by hand (SITE_TEST_LIVE=1), to
+// confirm GitHub still sends the fields this test assumes. It reads only the
+// API, never the download path — a curl here cannot reproduce a browser's CORS
+// rules, so hitting github.com would prove nothing even if it succeeded.
+async function loadLive() {
+  const r = await fetch(API, { headers: { Accept: "application/vnd.github+json" } });
   if (!r.ok) throw new Error("the API answered " + r.status);
-  const release = await r.json();
-  if (what === "release") return release;
-  const sums = (release.assets || []).find(a => a.name === "checksums.txt");
-  if (!sums) return "";
-  const t = await fetch(sums.browser_download_url);
-  return t.ok ? t.text() : "";
+  return r.json();
 }
 
 (async function main() {
@@ -193,12 +220,11 @@ async function loadLive(what) {
   });
   ok("index.html carries every element id site.js looks up", needed.join(", "));
 
-  const release = live() ? await loadLive("release") : RELEASE;
-  const sumsText = live() ? await loadLive("checksums") : CHECKSUMS;
+  const release = live() ? await loadLive() : RELEASE;
 
   // --- A. the real shape -------------------------------------------------
-  console.log("\nA. real payload + real checksums.txt");
-  const a = await run(release, { sumsText });
+  console.log("\nA. real payload (digests, one request)");
+  const a = await run(release);
   const assetNames = (release.assets || []).map(x => x.name);
   eq("every asset in the release gets a row", a.rows.length, assetNames.length);
   eq("fallback list is hidden once the live table renders", a.fallbackHidden, true);
@@ -206,25 +232,32 @@ async function loadLive(what) {
   assert.ok(a.caption.indexOf(release.tag_name) !== -1, "caption must name the tag");
   ok("caption names the release", a.caption);
 
-  // The hash column is filled from checksums.txt, keyed by asset name: this is
-  // the check that would have caught a misnamed field.
+  // The request budget: exactly one, to the one origin that sends CORS
+  // headers. This is the assertion that fails for the bug a browser reported
+  // and a DOM stub did not — the old code fetched checksums.txt from
+  // github.com/.../releases/download/... and every real user saw no hashes.
+  eq("no request to an origin browsers block (CORS)", corsViolations.length, 0);
+  eq("exactly one network request", a.fetched.length, 1);
+  eq("the one request goes to api.github.com", a.fetched[0], API);
+
+  // The hash column comes from `digest` in that same response: this is the
+  // check that would have caught a misnamed field.
   const amd64 = a.names.findIndex(n => /_windows_amd64\.zip$/.test(n));
   if (amd64 >= 0) {
-    const published = new Map(
-      sumsText.trim().split("\n").map(l => l.trim().split(/\s+/)).filter(p => p.length >= 2)
-        .map(p => [p[1], p[0]])
-    );
-    eq("SHA-256 column matches checksums.txt for " + a.names[amd64],
-      a.hashes[amd64], published.get(a.names[amd64]));
+    const expected = String(release.assets.find(
+      x => x.name === a.names[amd64]).digest).replace(/^sha256:/, "");
+    eq("SHA-256 column matches the asset's own digest for " + a.names[amd64],
+      a.hashes[amd64], expected);
+    eq("digest arrives with the sha256: prefix stripped", a.hashes[amd64].length, 64);
     eq("size column is the byte count, humanised", a.sizes[amd64], "5.8 MiB");
   } else {
     ok("no amd64 zip in this release, hash-column check skipped");
   }
-
-  // Assets with no line in checksums.txt must read as "no hash", not as empty
-  // (an empty cell looks like a layout bug; an em dash reads as intentional).
-  const txt = a.names.findIndex(n => n === "checksums.txt");
-  if (txt >= 0) eq("asset absent from checksums.txt shows an em dash", a.hashes[txt], "\u2014");
+  // Every asset in this fixture carries a digest, so every cell is a hash and
+  // none is the "no hash" marker.
+  eq("no asset shows the em dash in the all-digests release",
+    a.hashes.filter(h => h === "\u2014").length, 0);
+  eq("status states where the digests came from", /one response/.test(a.status), true);
 
   // --- B. hostile payload ------------------------------------------------
   console.log("\nB. hostile payload");
@@ -238,17 +271,18 @@ async function loadLive(what) {
       { name: "traversal", size: 1, browser_download_url: PREFIX + "v9.9.9/../../../evil" },
     ],
   };
-  const b = await run(evil, { sumsText: "" });
+  const b = await run(evil);
   eq("only the one asset on the real download path survives", b.names,
     ["<img src=x onerror=alert(1)>"]);
   eq("no href outside the download path", violations.length, 0);
+  eq("still only one request, and still to the API", b.fetched.length, 1);
   ok("javascript: URL dropped", "js not in " + JSON.stringify(b.names));
   ok("foreign host dropped", "foreign not in " + JSON.stringify(b.names));
   ok("traversal dropped after URL resolution", "traversal not in " + JSON.stringify(b.names));
 
   // --- C. nothing usable -------------------------------------------------
   console.log("\nC. payload where no asset survives the URL check");
-  const c = await run({ tag_name: "v0", assets: [{ name: "x", size: 1, browser_download_url: "javascript:1" }] }, { sumsText: "" });
+  const c = await run({ tag_name: "v0", assets: [{ name: "x", size: 1, browser_download_url: "javascript:1" }] });
   eq("no table is built", c.rows.length, 0);
   eq("the pinned list stays visible", c.fallbackHidden, false);
   assert.ok(/URL check/.test(c.status), "status must name the reason, not just 'could not read'");
@@ -261,11 +295,35 @@ async function loadLive(what) {
   assert.ok(/403/.test(d.status), "status must carry the HTTP status");
   ok("status carries the HTTP status");
 
-  // --- E. checksums.txt unreachable --------------------------------------
-  console.log("\nE. release readable, checksums.txt not");
-  const e = await run(RELEASE, { sumsBroken: true });
-  eq("the table still renders without hashes", e.rows.length, RELEASE.assets.length);
-  eq("fallback stays hidden: the table is live, just hashless", e.fallbackHidden, true);
+  // --- E. digests missing or malformed -----------------------------------
+  console.log("\nE. release where digests are absent, truncated or wrong-shaped");
+  const thin = {
+    tag_name: "v0.0.1",
+    published_at: "2026-01-01T00:00:00Z",
+    assets: [
+      // normal
+      { name: "a.zip", size: 10, browser_download_url: PREFIX + "v0.0.1/a.zip",
+        digest: "sha256:1111111111111111111111111111111111111111111111111111111111111111" },
+      // absent
+      { name: "b.zip", size: 11, browser_download_url: PREFIX + "v0.0.1/b.zip" },
+      // truncated: must not read as a valid hash
+      { name: "c.zip", size: 12, browser_download_url: PREFIX + "v0.0.1/c.zip",
+        digest: "sha256:1111111" },
+      // a different algorithm: not claimed to be sha256
+      { name: "d.zip", size: 13, browser_download_url: PREFIX + "v0.0.1/d.zip",
+        digest: "sha512:aaaa" },
+    ],
+  };
+  const e = await run(thin);
+  eq("all four rows render", e.rows.length, 4);
+  eq("the one well-formed digest renders", e.hashes[0],
+    "1111111111111111111111111111111111111111111111111111111111111111");
+  eq("an absent digest reads as an em dash", e.hashes[1], "\u2014");
+  eq("a truncated digest reads as an em dash, not a short hash", e.hashes[2], "\u2014");
+  eq("a non-sha256 algorithm reads as an em dash", e.hashes[3], "\u2014");
+  assert.ok(/1 of 4/.test(e.status), "status must say how many digests arrived");
+  ok("status reports the partial digest count");
+  eq("fallback stays hidden: the table is live, just partly hashless", e.fallbackHidden, true);
 
   // --- F. the static fallback must not drift ------------------------------
   // Only meaningful against the fixture: once a newer release ships, the pinned
@@ -274,12 +332,12 @@ async function loadLive(what) {
   if (!live()) {
     console.log("\nF. pinned fallback table in index.html");
     const pinned = [...HTML.matchAll(/<td class="hash">([0-9a-f]{64})<\/td>/g)].map(m => m[1]);
-    const published = CHECKSUMS.trim().split("\n").map(l => l.split(/\s+/)[0]);
+    const fromDigest = RELEASE.assets.map(x => x.digest.replace(/^sha256:/, ""));
     eq("pinned row count", pinned.length, 2);
     pinned.forEach(h => {
-      assert.ok(published.includes(h), "pinned hash not in the published checksums.txt: " + h);
+      assert.ok(fromDigest.includes(h), "pinned hash not among the release's digests: " + h);
     });
-    ok("both pinned hashes match the published checksums.txt");
+    ok("both pinned hashes match the digests the API reports");
     assert.ok(HTML.indexOf("5.8 MiB") !== -1 && HTML.indexOf("5.4 MiB") !== -1,
       "pinned sizes must match the API byte counts humanised");
     ok("pinned sizes match the API sizes humanised");

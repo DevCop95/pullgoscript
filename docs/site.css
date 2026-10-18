@@ -4,12 +4,23 @@
   --bg: #0c0e12;
   --bg-1: #12151b;
   --bg-2: #171b23;
+  --bg-3: #1c212b;
   --fg: #dfe4ec;
   --fg-dim: #939cab;
-  --line: #262c37;
+  /* Hairlines, not borders: pure white at ~6% reads as a soft edge on the
+     dark palette; the old #262c37 was a saturated 1px line that boxed
+     everything in and made the cards look flat and dirty. */
+  --line: rgba(255, 255, 255, 0.06);
+  --line-strong: rgba(255, 255, 255, 0.1);
   --accent: #e2544a;
   --accent-2: #f0a04b;
+  --accent-dim: rgba(226, 84, 74, 0.14);
+  --accent-2-dim: rgba(240, 160, 75, 0.13);
   --ok: #4fb477;
+  --ok-dim: rgba(79, 180, 119, 0.13);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.3), 0 10px 28px rgba(0, 0, 0, 0.28);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.35), 0 18px 44px rgba(0, 0, 0, 0.36);
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
@@ -25,6 +36,18 @@ body {
   font: 16px/1.65 var(--sans);
 }
 
+/* A single soft glow at the top of the page. Costs nothing (no image, no
+   request) and stops the background from reading as a flat dead slab; the
+   red is the brand accent, kept faint so text contrast does not move. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(900px 460px at 50% -8%, rgba(226, 84, 74, 0.07), transparent 70%);
+  pointer-events: none;
+  z-index: -1;
+}
+
 a { color: var(--accent-2); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
@@ -32,7 +55,6 @@ code, kbd, pre, .mono { font-family: var(--mono); }
 
 code {
   background: var(--bg-2);
-  border: 1px solid var(--line);
   border-radius: 4px;
   padding: 1px 5px;
   font-size: 0.88em;
@@ -42,11 +64,12 @@ pre {
   background: var(--bg-1);
   border: 1px solid var(--line);
   border-left: 3px solid var(--accent);
-  border-radius: 6px;
+  border-radius: 10px;
   padding: 14px 16px;
   overflow-x: auto;
   font-size: 13.5px;
   line-height: 1.6;
+  box-shadow: var(--shadow-sm);
 }
 pre code { background: none; border: 0; padding: 0; font-size: inherit; }
 
@@ -56,10 +79,11 @@ pre code { background: none; border: 0; padding: 0; font-size: inherit; }
 
 header.top {
   border-bottom: 1px solid var(--line);
-  background: rgba(12, 14, 18, 0.92);
+  background: rgba(12, 14, 18, 0.82);
   position: sticky;
   top: 0;
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   z-index: 10;
 }
 
@@ -93,6 +117,7 @@ footer {
   color: var(--fg-dim);
   font-size: 13.5px;
   padding: 22px 0 40px;
+  margin-top: 20px;
 }
 footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 
@@ -106,9 +131,11 @@ h1 {
 }
 h2 {
   font-size: 22px;
-  margin: 40px 0 12px;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
+  margin: 44px 0 12px;
+  padding-top: 20px;
+  /* Kept as a section rule — long pages need one — but at 5% white it reads
+     as a soft break, not a line ruled across the page. */
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 h3 { font-size: 17px; margin: 26px 0 8px; }
 p { margin: 12px 0; }
@@ -119,24 +146,32 @@ p { margin: 12px 0; }
 
 /* -------------------------------------------------------------------- pills */
 
+/* Pills carry a tint, not a stroke: a 1px box around a 12px chip reads as a
+   cage. The background does the work, and the tint doubles as the meaning. */
 .pills { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 0; }
 .pill {
   font-family: var(--mono);
   font-size: 12px;
   color: var(--fg-dim);
-  border: 1px solid var(--line);
-  background: var(--bg-1);
+  background: rgba(255, 255, 255, 0.04);
   border-radius: 999px;
   padding: 3px 10px;
   white-space: nowrap;
 }
-.pill.hot { color: var(--accent); border-color: #40221f; }
-.pill.warm { color: var(--accent-2); border-color: #3d2c19; }
-.pill.ok { color: var(--ok); border-color: #1e3a2a; }
+.pill.hot { color: var(--accent); background: var(--accent-dim); }
+.pill.warm { color: var(--accent-2); background: var(--accent-2-dim); }
+.pill.ok { color: var(--ok); background: var(--ok-dim); }
 
 /* ------------------------------------------------------------------- tables */
 
-.tw { overflow-x: auto; margin: 16px 0; border: 1px solid var(--line); border-radius: 6px; }
+.tw {
+  overflow-x: auto;
+  margin: 16px 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg-1);
+  box-shadow: var(--shadow-sm);
+}
 
 table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
 
@@ -148,7 +183,7 @@ caption {
   padding: 10px 12px 0;
 }
 
-th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); vertical-align: top; }
 
 thead th {
   background: var(--bg-2);
@@ -161,7 +196,7 @@ thead th {
 }
 
 tbody tr:last-child td { border-bottom: 0; }
-tbody tr:hover { background: var(--bg-1); }
+tbody tr:hover { background: rgba(255, 255, 255, 0.025); }
 
 td.rt, th.rt { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
 td.sev { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
@@ -176,22 +211,43 @@ td.sev { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
 
 /* --------------------------------------------------------------- components */
 
-.shot { width: 100%; border: 1px solid var(--line); border-radius: 8px; margin: 20px 0 6px; }
+.shot { width: 100%; border: 1px solid var(--line); border-radius: 10px; margin: 20px 0 6px; box-shadow: var(--shadow-sm); }
 
+/* Callouts keep the left accent bar — it carries the meaning (amber = note,
+   red = warning) — but drop the full grey stroke that used to box them. */
 .callout {
-  border: 1px solid var(--line);
   border-left: 3px solid var(--accent-2);
-  background: var(--bg-1);
-  border-radius: 6px;
-  padding: 14px 16px;
+  background: linear-gradient(90deg, var(--accent-2-dim), rgba(240, 160, 75, 0.03));
+  border-radius: 10px;
+  padding: 14px 18px;
   margin: 18px 0;
   font-size: 14.5px;
 }
-.callout.warn { border-left-color: var(--accent); }
+.callout.warn {
+  border-left-color: var(--accent);
+  background: linear-gradient(90deg, var(--accent-dim), rgba(226, 84, 74, 0.03));
+}
 .callout strong { color: var(--fg); }
 
-.cardgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin: 18px 0; }
-.card { border: 1px solid var(--line); background: var(--bg-1); border-radius: 6px; padding: 14px 16px; }
+/* Cards: the old rule drew a 1px #262c37 box on a #12151b background — the
+   same value family, so the edge read as dirt rather than as a line, and the
+   flat fill gave the card no place to sit. Now the surface itself does the
+   separating: a vertical gradient, a barely-there hairline, and a real
+   shadow. Hover lifts the card and the accent arrives as a tint, not a cage. */
+.cardgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; margin: 18px 0; }
+.card {
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--bg-3), var(--bg-1));
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+.card:hover {
+  transform: translateY(-2px);
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-md);
+}
 .card h3 { margin: 0 0 6px; font-size: 15px; }
 .card p { margin: 0; font-size: 14px; color: var(--fg-dim); }
 
@@ -206,14 +262,14 @@ td.sev { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 1px solid var(--line);
-  background: var(--bg-2);
+  background: var(--bg-3);
   color: var(--fg-dim);
   font-family: var(--mono);
   font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: inset 0 0 0 1px var(--line);
 }
 
 dl.entry { margin: 0; }
