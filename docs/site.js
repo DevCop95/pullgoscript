@@ -1,5 +1,16 @@
 // Reads the newest release from the GitHub API so the download table never
-// goes stale between releases.
+// goes stale between releases. One request, one origin.
+//
+// The SHA-256 column comes from the `digest` field that every release asset
+// already carries in that same response. It deliberately does NOT fetch
+// checksums.txt to parse it: that file sits behind
+// github.com/.../releases/download/..., which answers with a 302 to a CDN that
+// sends no Access-Control-Allow-Origin — so a browser refuses to read it and
+// the console reports "blocked by CORS policy". (Following the redirect from
+// the API asset endpoint does not help either: the *final* response is the one
+// the browser checks, and it has no ACAO header.) The api.github.com origin
+// does send `Access-Control-Allow-Origin: *`, so everything on this page is
+// readable in exactly one request, from one origin.
 //
 // Every string that comes from the API is written with textContent, never
 // innerHTML, and every href is resolved and checked against this repo's own
@@ -55,20 +66,23 @@
     return (bytes / (1024 * 1024)).toFixed(1) + " MiB";
   }
 
-  function parseSums(text) {
-    var out = {};
-    String(text || "").split("\n").forEach(function (line) {
-      var m = line.trim().split(/\s+/);
-      if (m.length >= 2) out[m[1]] = m[0];
-    });
-    return out;
+  // GitHub reports digests as "sha256:<64 hex>". Anything else — absent, a
+  // different algorithm, a truncated value — reads as no hash rather than as
+  // a plausible-looking one, so a wrong column never looks right.
+  var NO_HASH = "\u2014";
+  function hashOf(digest) {
+    if (typeof digest !== "string" || digest.indexOf("sha256:") !== 0) return NO_HASH;
+    var hex = digest.slice(7);
+    return /^[0-9a-f]{64}$/.test(hex) ? hex : NO_HASH;
   }
 
-  function render(release, sums) {
+  function render(release) {
     var assets = (release.assets || []).filter(function (a) {
       return safeURL(a.browser_download_url);
     });
     if (!assets.length) throw new Error("no release asset survived the URL check");
+
+    var withHash = assets.filter(function (a) { return hashOf(a.digest) !== NO_HASH; }).length;
 
     var table = el("table");
     table.appendChild(el("caption", "Latest release: " + release.tag_name +
@@ -91,7 +105,7 @@
       tr.appendChild(td);
 
       tr.appendChild(el("td", human(a.size)));
-      tr.appendChild(el("td", sums[a.name] || "\u2014", "hash"));
+      tr.appendChild(el("td", hashOf(a.digest), "hash"));
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
@@ -99,8 +113,11 @@
     while (mount.firstChild) mount.removeChild(mount.firstChild);
     mount.appendChild(table);
     if (fallback) fallback.hidden = true;
-    status.textContent = "Read live from the GitHub API, so this table follows " +
-      "the newest release without a rebuild.";
+
+    status.textContent = withHash === assets.length
+      ? "Read live from the GitHub API — filenames, sizes and SHA-256 digests all come from this one response."
+      : "Read live from the GitHub API. " + withHash + " of " + assets.length +
+        " assets carry an SHA-256 digest in the release metadata; the rest show an em dash.";
   }
 
   fetch(API, { headers: { Accept: "application/vnd.github+json" } })
@@ -108,17 +125,7 @@
       if (!r.ok) throw new Error("the API answered " + r.status);
       return r.json();
     })
-    .then(function (release) {
-      var sums = (release.assets || []).filter(function (a) {
-        return a.name === "checksums.txt";
-      })[0];
-      var sumsURL = sums ? safeURL(sums.browser_download_url) : null;
-      if (!sumsURL) return render(release, {});
-      return fetch(sumsURL)
-        .then(function (r) { return r.ok ? r.text() : ""; })
-        .then(function (t) { render(release, parseSums(t)); })
-        .catch(function () { render(release, {}); });
-    })
+    .then(render)
     .catch(function (err) {
       status.textContent = "Could not build the live table automatically (" +
         err.message + "). The pinned list below is the v2.0.2 snapshot; the " +
