@@ -1,26 +1,26 @@
 /* OBLITERATUS docs — hand-written, no build step, no external requests. */
 
 :root {
-  --bg: #0c0e12;
-  --bg-1: #12151b;
-  --bg-2: #171b23;
-  --bg-3: #1c212b;
-  --fg: #dfe4ec;
-  --fg-dim: #939cab;
-  /* Hairlines, not borders: pure white at ~6% reads as a soft edge on the
-     dark palette; the old #262c37 was a saturated 1px line that boxed
-     everything in and made the cards look flat and dirty. */
-  --line: rgba(255, 255, 255, 0.06);
-  --line-strong: rgba(255, 255, 255, 0.1);
-  --accent: #e2544a;
-  --accent-2: #f0a04b;
-  --accent-dim: rgba(226, 84, 74, 0.14);
-  --accent-2-dim: rgba(240, 160, 75, 0.13);
+  --bg: #202830;
+  --bg-1: #252e36;
+  --bg-2: #2b3640;
+  --bg-3: #303c47;
+  --fg: #eef2f5;
+  --fg-dim: #aab5bf;
+  --line: rgba(255, 255, 255, 0.075);
+  --line-strong: rgba(255, 255, 255, 0.13);
+  --accent: #4fc2e7;
+  --accent-2: #8ed8ed;
+  --accent-dim: rgba(79, 194, 231, 0.14);
+  --accent-2-dim: rgba(142, 216, 237, 0.12);
+  --danger: #e2645d;
+  --danger-dim: rgba(226, 100, 93, 0.14);
+  --warning: #e2b568;
+  --warning-dim: rgba(226, 181, 104, 0.14);
   --ok: #4fb477;
   --ok-dim: rgba(79, 180, 119, 0.13);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.3), 0 10px 28px rgba(0, 0, 0, 0.28);
-  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.35), 0 18px 44px rgba(0, 0, 0, 0.36);
+  --shadow-sm: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --shadow-md: 0 14px 34px rgba(0, 0, 0, 0.24);
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
@@ -36,14 +36,15 @@ body {
   font: 16px/1.65 var(--sans);
 }
 
-/* A single soft glow at the top of the page. Costs nothing (no image, no
-   request) and stops the background from reading as a flat dead slab; the
-   red is the brand accent, kept faint so text contrast does not move. */
+::selection { color: var(--fg); background: rgba(79, 194, 231, 0.32); }
+
+/* A single soft glow at the top of the page keeps the slate background from
+   reading as a flat slab while leaving text contrast unchanged. */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
-  background: radial-gradient(900px 460px at 50% -8%, rgba(226, 84, 74, 0.07), transparent 70%);
+  background: radial-gradient(900px 460px at 50% -8%, rgba(79, 194, 231, 0.065), transparent 70%);
   pointer-events: none;
   z-index: -1;
 }
@@ -62,14 +63,13 @@ code {
 
 pre {
   background: var(--bg-1);
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--accent);
-  border-radius: 10px;
-  padding: 14px 16px;
+  border: 0;
+  border-radius: 12px;
+  padding: 17px 20px;
   overflow-x: auto;
   font-size: 13.5px;
   line-height: 1.6;
-  box-shadow: var(--shadow-sm);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
 }
 pre code { background: none; border: 0; padding: 0; font-size: inherit; }
 
@@ -78,12 +78,12 @@ pre code { background: none; border: 0; padding: 0; font-size: inherit; }
 .wrap { max-width: 1080px; margin: 0 auto; padding: 0 22px; }
 
 header.top {
-  border-bottom: 1px solid var(--line);
-  background: rgba(12, 14, 18, 0.82);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+  background: rgba(32, 40, 48, 0.82);
   position: sticky;
   top: 0;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   z-index: 10;
 }
 
@@ -106,9 +106,10 @@ header.top .wrap {
 }
 .brand span { color: var(--accent); }
 
-nav.main { display: flex; gap: 16px; flex-wrap: wrap; font-size: 14.5px; }
-nav.main a { color: var(--fg-dim); }
-nav.main a:hover, nav.main a[aria-current="page"] { color: var(--fg); }
+nav.main { display: flex; gap: 22px; flex-wrap: wrap; font-size: 13px; letter-spacing: 0.015em; }
+nav.main a { color: var(--fg-dim); transition: color 0.16s ease; }
+nav.main a:hover, nav.main a[aria-current="page"] { color: var(--fg); text-decoration: none; }
+nav.main a[aria-current="page"] { box-shadow: inset 0 -1px var(--accent); }
 
 main { padding: 34px 0 60px; }
 
@@ -124,24 +125,24 @@ footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wr
 /* --------------------------------------------------------------- typography */
 
 h1 {
-  font-size: 34px;
+  font-size: clamp(32px, 4vw, 43px);
   line-height: 1.15;
-  margin: 0 0 6px;
-  letter-spacing: -0.01em;
+  margin: 0 0 10px;
+  letter-spacing: -0.035em;
+  font-weight: 650;
 }
 h2 {
-  font-size: 22px;
-  margin: 44px 0 12px;
-  padding-top: 20px;
-  /* Kept as a section rule — long pages need one — but at 5% white it reads
-     as a soft break, not a line ruled across the page. */
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 20px;
+  margin: 52px 0 14px;
+  padding-top: 0;
+  letter-spacing: -0.018em;
+  font-weight: 600;
 }
 h3 { font-size: 17px; margin: 26px 0 8px; }
 p { margin: 12px 0; }
 
-.lede { font-size: 18px; color: var(--fg-dim); margin: 0 0 18px; }
-.tagline { color: var(--accent-2); font-family: var(--mono); font-size: 14px; letter-spacing: 0.02em; }
+.lede { max-width: 78ch; font-size: 17px; color: #b3b7bd; margin: 0 0 22px; line-height: 1.75; }
+.tagline { color: var(--accent-2); font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
 .note { color: var(--fg-dim); font-size: 14px; }
 
 /* -------------------------------------------------------------------- pills */
@@ -158,19 +159,18 @@ p { margin: 12px 0; }
   padding: 3px 10px;
   white-space: nowrap;
 }
-.pill.hot { color: var(--accent); background: var(--accent-dim); }
-.pill.warm { color: var(--accent-2); background: var(--accent-2-dim); }
+.pill.hot { color: var(--danger); background: var(--danger-dim); }
+.pill.warm { color: var(--warning); background: var(--warning-dim); }
 .pill.ok { color: var(--ok); background: var(--ok-dim); }
 
 /* ------------------------------------------------------------------- tables */
 
 .tw {
   overflow-x: auto;
-  margin: 16px 0;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--bg-1);
-  box-shadow: var(--shadow-sm);
+  margin: 20px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
@@ -180,13 +180,13 @@ caption {
   text-align: left;
   color: var(--fg-dim);
   font-size: 13px;
-  padding: 10px 12px 0;
+  padding: 0 0 12px;
 }
 
-th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); vertical-align: top; }
+th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.065); vertical-align: top; }
 
 thead th {
-  background: var(--bg-2);
+  background: transparent;
   font-size: 12.5px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -197,11 +197,12 @@ thead th {
 
 tbody tr:last-child td { border-bottom: 0; }
 tbody tr:hover { background: rgba(255, 255, 255, 0.025); }
+thead th:first-child, tbody td:first-child { padding-left: 0; }
 
 td.rt, th.rt { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
 td.sev { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
-.sev-crit { color: var(--accent); font-weight: 600; }
-.sev-high { color: var(--accent-2); font-weight: 600; }
+.sev-crit { color: var(--danger); font-weight: 600; }
+.sev-high { color: var(--warning); font-weight: 600; }
 .sev-med { color: #d9c04a; }
 .sev-low { color: var(--fg-dim); }
 .sev-info { color: #5b8bbf; }
@@ -211,44 +212,38 @@ td.sev { font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
 
 /* --------------------------------------------------------------- components */
 
-.shot { width: 100%; border: 1px solid var(--line); border-radius: 10px; margin: 20px 0 6px; box-shadow: var(--shadow-sm); }
+.shot { display: block; width: 100%; border: 0; border-radius: 14px; margin: 30px 0 28px; box-shadow: 0 22px 60px rgba(0, 0, 0, 0.28); }
 
-/* Callouts keep the left accent bar — it carries the meaning (amber = note,
-   red = warning) — but drop the full grey stroke that used to box them. */
+/* Callouts use a faint surface tint to carry context without a colored frame. */
 .callout {
-  border-left: 3px solid var(--accent-2);
-  background: linear-gradient(90deg, var(--accent-2-dim), rgba(240, 160, 75, 0.03));
-  border-radius: 10px;
+  border: 0;
+  background: linear-gradient(100deg, rgba(79, 194, 231, 0.09), rgba(79, 194, 231, 0.025) 72%, transparent);
+  border-radius: 0 10px 10px 0;
   padding: 14px 18px;
-  margin: 18px 0;
+  margin: 22px 0;
   font-size: 14.5px;
 }
 .callout.warn {
-  border-left-color: var(--accent);
-  background: linear-gradient(90deg, var(--accent-dim), rgba(226, 84, 74, 0.03));
+  background: linear-gradient(100deg, var(--danger-dim), rgba(226, 100, 93, 0.025) 72%, transparent);
 }
 .callout strong { color: var(--fg); }
 
-/* Cards: the old rule drew a 1px #262c37 box on a #12151b background — the
-   same value family, so the edge read as dirt rather than as a line, and the
-   flat fill gave the card no place to sit. Now the surface itself does the
-   separating: a vertical gradient, a barely-there hairline, and a real
-   shadow. Hover lifts the card and the accent arrives as a tint, not a cage. */
-.cardgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; margin: 18px 0; }
+/* Links read as a quiet reference list; the surface appears only on hover. */
+.cardgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 4px 22px; margin: 18px 0; }
 .card {
-  border: 1px solid var(--line);
-  background: linear-gradient(180deg, var(--bg-3), var(--bg-1));
-  border-radius: 12px;
-  padding: 16px 18px;
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+  display: block;
+  border: 0;
+  border-radius: 9px;
+  padding: 16px 14px;
+  background: transparent;
+  transition: background 0.16s ease;
+  text-decoration: none;
 }
 .card:hover {
-  transform: translateY(-2px);
-  border-color: var(--line-strong);
-  box-shadow: var(--shadow-md);
+  background: rgba(255, 255, 255, 0.035);
+  text-decoration: none;
 }
-.card h3 { margin: 0 0 6px; font-size: 15px; }
+.card h3 { margin: 0 0 6px; font-size: 15px; color: var(--fg); }
 .card p { margin: 0; font-size: 14px; color: var(--fg-dim); }
 
 .steps { counter-reset: s; list-style: none; padding: 0; margin: 16px 0; }
@@ -285,3 +280,27 @@ dl.entry dd { margin: 2px 0 0; }
 
 .hash { font-family: var(--mono); font-size: 12.5px; color: var(--fg-dim); word-break: break-all; }
 noscript .callout { border-left-color: var(--accent); }
+
+/* Landing page hierarchy */
+.home { padding-top: 58px; }
+.home > h1 { max-width: 760px; font-size: clamp(38px, 5.3vw, 58px); letter-spacing: -0.05em; }
+.home > .tagline { margin: 12px 0 0; }
+.home > .pills { margin-top: 20px; }
+.home > .lede { max-width: 76ch; font-size: 18px; }
+.home > .tw { max-width: 850px; }
+
+@media (max-width: 640px) {
+  .wrap { padding-left: 18px; padding-right: 18px; }
+  header.top .wrap { align-items: flex-start; gap: 12px; }
+  nav.main { gap: 10px 16px; font-size: 12.5px; }
+  main { padding-top: 26px; }
+  .home { padding-top: 38px; }
+  h1 { font-size: 32px; }
+  h2 { margin-top: 40px; }
+  th, td { padding: 10px 11px; }
+  .home > .pills { gap: 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+}
