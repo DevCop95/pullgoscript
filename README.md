@@ -223,7 +223,7 @@ New audit checks, fixes and docs are welcome — see [CONTRIBUTING.md](CONTRIBUT
 
 ## 📄 License
 
-[MIT](LICENSE) © DevCop95 (Yared Henríquez).
+[MIT](LICENSE) © DevCop95 (Yared Henriquez).
 
 ## ⚠️ Disclaimer
 

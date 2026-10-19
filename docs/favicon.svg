@@ -1,8 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- The console prompt: the tool is an operator console, so the mark is the
-       shell prompt itself. Red is the brand accent, amber is the cursor. -->
-  <rect width="64" height="64" rx="14" fill="#12151b"/>
-  <path d="M15 21 L29 32 L15 43" fill="none" stroke="#e2544a"
+  <!-- The console prompt rendered in the site's slate and cyan palette. -->
+  <rect width="64" height="64" rx="14" fill="#202830"/>
+  <path d="M15 21 L29 32 L15 43" fill="none" stroke="#4fc2e7"
         stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-  <rect x="35" y="38" width="16" height="7" rx="2" fill="#f0a04b"/>
+  <rect x="35" y="38" width="16" height="7" rx="2" fill="#8ed8ed"/>
 </svg>
