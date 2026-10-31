@@ -10,7 +10,7 @@ go 1.26.9
 require (
 	github.com/gorilla/websocket v1.5.3
 	golang.org/x/sys v0.49.0
-	modernc.org/sqlite v1.60.1
+	modernc.org/sqlite v1.61.0
 )
 
 require (
